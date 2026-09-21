@@ -25,18 +25,20 @@ Needs to:
 
 Since both Cogs must be able to parse the transactions, it makes the most sense to start by making a cog that can do just that.
 
-This includes:
+**This includes:**
 - Drafting up a barebones cog.md, and cog.yaml file
 - Implementing a script that actually parses the transaction details
 - For missing/misleading information that Ruth talked about, implement an inference model (Qwen 3, or another
   open-scource model), that can reason about these gaps in knowledge.
 - Explore the use of Frames (mainly the ones Reed has already written), for context the model can draw from.
 
-Testing:
+**Testing:**
 - Test against a specific data set (Openteams past bank statements)
 - Report success rate, anomalies, etc
 
 This Cog would serve as the base for both of the above Cogs, we just need to build upon it to serve the 2 different purposes
+
+---
 
 **For the Recurring Subscription auto-coder, this could include:**
 - Relevant additions to cog.md and cog.yaml.
