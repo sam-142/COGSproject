@@ -2,7 +2,7 @@
 
 This document outlines the plan for the following COGS development:
 
-# Recurring Subscription Auto-coder:
+**Recurring Subscription Auto-coder:**
 
 Needs to:
 - Be able to identify monthly recurring transactions
@@ -10,7 +10,7 @@ Needs to:
 
 ---
 
-# Chase-list builder:
+**Chase-list builder:**
 
 Needs to:
 - Be able to Parse the transactions into a structured format.
@@ -21,7 +21,7 @@ Needs to:
 
 ---
 
-# Proposed development timeline:
+**Proposed development timeline:**
 
 Since both Cogs must be able to parse the transactions, it makes the most sense to start by making a cog that can do just that.
 
@@ -38,7 +38,7 @@ Testing:
 
 This Cog would serve as the base for both of the above Cogs, we just need to build upon it to serve the 2 different purposes
 
-For the Recurring Subscription auto-coder, this could include:
+**For the Recurring Subscription auto-coder, this could include:**
 - Relevant additions to cog.md and cog.yaml.
 - A separate frame, outlining the decision process to identify monthly payments.
 - A list, of already existing direct debits/standing orders (if known by the accounting team)
@@ -47,7 +47,7 @@ For the Recurring Subscription auto-coder, this could include:
 
 ---
 
-For the Chase-list builder:
+**For the Chase-list builder:**
 
 At the most basic level:
 - Relevant additions to cog.md and cog.yaml
