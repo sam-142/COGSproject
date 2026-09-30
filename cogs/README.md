@@ -1,10 +1,10 @@
 # COG implementation
 
-**This is where the implementations for the cogs Chase-List Builder, Recurring subscription auto-coder, and transaction-parse-cog live**,
+**This is where the implementations for the cogs Chase-List Builder and Recurring subscription auto-coder live**,
 
 ---
 
-each folder currently contains a cog.md file, a cog.yaml file, a skills folder, a frames folder, and a references folder. These COGS are to be build by referencing (but not bound by) the cogspec (SPEC.md) written by Trent Oliphant.
+each folder currently contains a COG.md file, a cog.yaml file, a skills folder, a frames folder, and a references folder. These COGS are to be build by referencing (but not bound by) the cogspec (SPEC.md) written by Trent Oliphant.
 
 ---
 

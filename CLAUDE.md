@@ -4,22 +4,21 @@ Guidance for working in this repo. Read this and `cogs/SPEC.md` before creating 
 
 ## What this repo is
 
-Three Cogs for accounting work on bank and card statement PDFs, built from scratch. They live in
-`cogs/`, in dependency order:
+Two Cogs for accounting work on OpenTeams' Brex card statements, built from scratch. They live in
+`cogs/` and are independent of each other:
 
 ```
-transaction-parse-cog                    statement PDF -> structured ledger
-  provides: transaction/parsed-ledger
-      |
-      +-- recurring-subscription-auto-coder-cog   recurring charges, coded for QuickBooks
-      +-- chase-list-builder-cog                  gaps -> drafted outreach -> replies folded back
+recurring-subscription-auto-coder-cog   recurring charges, coded for QuickBooks
+chase-list-builder-cog                  gaps -> drafted outreach -> replies folded back
 ```
 
-**The two downstream Cogs are dependents, never forks.** They declare
-`requires: transaction/parsed-ledger`. Parsing is fixed in one place. If a change feels like it
-needs copying into both, it belongs in `transaction-parse-cog` instead.
+**There is no shared parsing Cog.** A separate `transaction-parse-cog` was planned and scrapped: a
+whole Cog for two consumers was not worth the cost. Each Cog reads statements itself. Keep that
+ingest step thin, and give both the same transaction shape (see Non-negotiables) so they don't
+drift apart. If the Brex CSV export in `cogs/questions.md` comes through, ingest shrinks to a skill
+that checks the input.
 
-All three currently contain empty `cog.md` and `cog.yaml` plus empty `skills/`, `frames/`, and
+Both currently contain empty `COG.md` and `cog.yaml` plus empty `skills/`, `frames/`, and
 `references/` directories. `cogs/SPEC.md` is Trent Oliphant's CogSpec v0.1 — the Cogs reference it
 but are not bound by it (`cogs/README.md`). Where this file and the spec disagree, say so rather
 than silently picking one.
@@ -28,9 +27,8 @@ than silently picking one.
 
 ### A Cog is a directory; `COG.md` is its entry file
 
-Spec §File format is explicit: the entry file is named `COG.md`. The placeholders in this repo are
-lowercase `cog.md`, which will not be discovered by a conforming implementation on a
-case-sensitive filesystem. **Rename them to `COG.md` when you first touch each Cog.**
+Spec §File format is explicit: the entry file is named `COG.md`, exactly. Lowercase `cog.md` (or
+`COG.MD`) will not be discovered by a conforming implementation on a case-sensitive filesystem.
 
 A `COG.md` with no manifest is a **draft**, not a Cog — a defined artifact, not a scratch file.
 Promoting a draft is adding `manifest:`, `manifest_schema:`, and the file they name. Nothing else
@@ -47,9 +45,9 @@ the spec says so.
 | `manifest` | relative path inside the Cog root; no absolute paths, no `..`, must exist |
 | `manifest_schema` | namespaced, versioned identifier — see below |
 
-`name` should match the directory name, so `transaction-parse-cog`, not `cog-transaction-parse`.
+`name` should match the directory name, so `chase-list-builder-cog`, not `cog-chase-list-builder`.
 
-Recommended and expected here on all three: `kind`, `version`, `publisher`, `license`. The spec says
+Recommended and expected here on both: `kind`, `version`, `publisher`, `license`. The spec says
 a Cog intended for repeated installation should carry them. There is no `owner` field — `publisher`
 is the releasing identity.
 
@@ -79,7 +77,7 @@ These limits apply to fields the spec does not name as well as ones it does.
 | `context` | no | yes |
 | `complete` | yes | yes |
 
-It says **nothing** about whether the Cog contains code — any kind may. All three Cogs here are
+It says **nothing** about whether the Cog contains code — any kind may. Both Cogs here are
 `kind: context`: they carry task context and need inference supplied from elsewhere.
 
 ### What the spec deliberately does not define
@@ -107,7 +105,7 @@ Every manifest in this repo declares:
 manifest_schema: openteams/cog-package [0.1]
 ```
 
-Use that exact string in all three Cogs. It is opaque to the spec; its only value is that it is
+Use that exact string in both Cogs. It is opaque to the spec; its only value is that it is
 consistent, so a reader can tell our manifests apart from someone else's. Do not copy
 `example.org/...` out of the spec — the spec uses it precisely so nobody does.
 
@@ -115,8 +113,7 @@ The manifest carries the three declarations that need structure the frontmatter 
 
 - **`provides` / `requires`** — namespaced `family/name` strings, matched literally. The spec
   registers no vocabulary, so ours must stay internally consistent:
-  - `model-endpoint/openai-compatible` — required by all three
-  - `transaction/parsed-ledger` — provided by `transaction-parse-cog`, required by the other two
+  - `model-endpoint/openai-compatible` — required by both
 - **`interfaces`** — keep thin: a name, a kind, an optional endpoint, which one is default. No
   transport schemas, no request/response formats.
 - **`model`**, if one is ever carried — what the runtime is and what identifier the model answers
@@ -187,8 +184,9 @@ checklist: role and purpose, supported work, unsupported work, expected inputs a
 expected outputs, working method, boundaries and escalation, completion criteria, known
 limitations, and examples where they help.
 
-`Unsupported work` does real work in this repo — it is what stops `transaction-parse-cog` absorbing
-categorisation and recurrence decisions as it grows. Write it deliberately.
+`Unsupported work` does real work in this repo. It is what keeps the two Cogs from absorbing each
+other's jobs as they grow: the auto-coder doesn't chase people, and the chase-list builder doesn't
+code recurring charges. Write it deliberately.
 
 Comment the *why* in manifests, not the what.
 
@@ -207,11 +205,14 @@ Comment the *why* in manifests, not the what.
 
 Record the answers here as they land.
 
-- Environment and task tooling is not chosen. Pixi is the approach in the prior demo, where tasks
-  *are* the Cog's interfaces and so there is no separate runner — worth adopting, not yet decided.
+- **Decided: every Cog is a pixi package.** Each Cog root carries its own `pixi.toml`, and pixi
+  tasks *are* the Cog's interfaces. The manifest's `interfaces` entries name the task (`task: draft`),
+  as in the prior demo, so there is no separate runner. `pixi.toml` is an additional bundle file as
+  far as the spec is concerned, which is allowed. It is not spec conformance, and the spec does not
+  know about it. Do not use `[activation.env]` to set the model endpoint (see Traps).
 - PDF text extraction library: `pypdf` is lighter; `pdfplumber` gives word-level coordinates, which
   is what makes a per-field source anchor precise.
-- `license` for all three — pick once.
+- `license` for both — pick once.
 - Whether receipt parsing lands in `chase-list-builder-cog` or its own Cog.
 
 Prior art from the earlier CogSpec demo is local-only at `../cog-demo` — not part of this repo, and
