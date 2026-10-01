@@ -1,0 +1,12 @@
+# pixi environments
+.pixi/
+__pycache__/
+*.egg-info/
+
+# Per-machine model binding, written by `pixi run use`. Holds no key, but it
+# describes one person's setup.
+model.json
+
+# Real statements and exports never go in the repo. Put them in private/.
+private/
+*.pdf

@@ -210,6 +210,9 @@ Record the answers here as they land.
   as in the prior demo, so there is no separate runner. `pixi.toml` is an additional bundle file as
   far as the spec is concerned, which is allowed. It is not spec conformance, and the spec does not
   know about it. Do not use `[activation.env]` to set the model endpoint (see Traps).
+- **Decided: target pixi only for now.** Collab (Apollo) compatibility is deferred until we know how
+  it calls a Cog. Keep the logic out of the CLI so a Collab interface can be added later without
+  rewriting anything.
 - PDF text extraction library: `pypdf` is lighter; `pdfplumber` gives word-level coordinates, which
   is what makes a per-field source anchor precise.
 - `license` for both — pick once.
