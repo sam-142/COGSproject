@@ -13,13 +13,18 @@ chase-list-builder-cog                  gaps -> drafted outreach -> replies fold
 ```
 
 **There is no shared parsing Cog.** A separate `transaction-parse-cog` was planned and scrapped: a
-whole Cog for two consumers was not worth the cost. Each Cog reads statements itself. Keep that
-ingest step thin, and give both the same transaction shape (see Non-negotiables) so they don't
-drift apart. If the Brex CSV export in `cogs/questions.md` comes through, ingest shrinks to a skill
-that checks the input.
+whole Cog for two consumers was not worth the cost. Instead the shared part is **copied**:
 
-Both currently contain empty `COG.md` and `cog.yaml` plus empty `skills/`, `frames/`, and
-`references/` directories. `cogs/SPEC.md` is Trent Oliphant's CogSpec v0.1 — the Cogs reference it
+- `src/cog_transactions/` (reading, the shape's rules, vendor identification);
+- `context/transaction.schema.json`;
+- `context/vendors.yaml`.
+
+These were written in `recurring-subscription-auto-coder-cog` and are copied into
+`chase-list-builder-cog` unchanged. Change them in one Cog, then copy them to the other; never let
+the copies differ. Anything specific to one Cog stays out of `cog_transactions`.
+
+`recurring-subscription-auto-coder-cog` is a working draft (no model step yet).
+`chase-list-builder-cog` is still empty. `cogs/SPEC.md` is Trent Oliphant's CogSpec v0.1 — the Cogs reference it
 but are not bound by it (`cogs/README.md`). Where this file and the spec disagree, say so rather
 than silently picking one.
 
@@ -126,18 +131,22 @@ The spec's optional directories, and what each is for here:
 | Directory | Use |
 |---|---|
 | `skills/` | reusable task guidance the Cog invokes |
-| `frames/` | org context: known vendors, cardholder roster, chart of accounts, known direct debits |
+| `frames/` | **Markdown only.** Org context written for the model to read: how charges behave, how accounting works, cardholder habits |
+| `context/` | everything the code reads directly: lookup data as YAML (vendor patterns, coding rules, chart of accounts, known recurring list), the output schema, the output example, and later the model instructions |
 | `references/` | supporting docs — PDF layout notes, issuer quirks |
 | `evaluation/` | fixtures, criteria, results |
-| `context/` | instructions, output schema, output example |
 
 **Presence does not activate anything.** Per the spec, `skills/` and `frames/` are conventional
 locations only; the body or the manifest must reference them, with ordinary relative Markdown
 links. A file nobody links to is dead weight.
 
-Keep org knowledge in `frames/` as its own versioned files, never folded into the instructions.
-Reed's existing Frames drop into that directory when their format is known; until then these are
-the slots they replace.
+**Frames are Markdown, not data.** If code needs to read something (a list, a mapping, a rule),
+it goes in `context/` as YAML. If a model needs to understand something, it goes in `frames/` as
+prose. Don't keep the same list in both: a frame explains what the data means and points to the
+file in `context/`.
+
+Keep frames as their own versioned files, never folded into the instructions. Reed's existing
+Frames drop into that directory.
 
 ## Non-negotiables
 

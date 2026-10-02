@@ -41,6 +41,10 @@ local model answering a one-token completion.
 Both Cogs need this, so it comes first. It goes inside the auto-coder; the chase-list builder copies
 it in Phase 4.
 
+**Status: built from the synthetic CSV; the exit check is blocked on a real export.** The shared
+part is `src/cog_transactions/`, `context/transaction.schema.json` and `context/vendors.yaml` in
+`recurring-subscription-auto-coder-cog`.
+
 - Write the transaction shape once: `context/output-schema.json` plus `context/output-example.json`.
   Each transaction has a `parsed` object and an `inferred` object, and pending vs. posted status.
 - Build synthetic fixtures in `evaluation/`: a fake Brex statement that matches the real layout,

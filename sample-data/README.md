@@ -59,9 +59,20 @@ them recurring software charges, on 6 of the 10 cards. Two of those cards are sh
 
   Chase these, but don't code them.
 
+## `brex-transactions-2026-07.csv`, `brex-transactions-2026-08.csv`
+
+History for the September file: September's recurring software charges, plus a few one-offs. The
+differences from September are deliberate, so each recurrence label has a case:
+
+| Case | Vendor | Expected label in September |
+|---|---|---|
+| in neither history month | Grafana | `new` |
+| in August only | Canva | `likely-recurring` |
+| September's second Slack charge (seats added) has no earlier match | Slack | `amount-changed` |
+| charged in July and August, not September | Loom | expected but missing |
+| usage-billed, drifting within ±10% | AWS, Datadog, Twilio | `recurring` |
+
 ### What it doesn't cover yet
 
-- **Several months of history.** Recurring charges can't be confirmed from one month. Add earlier
-  months when the auto-coder needs them.
 - **Exports taken a few days apart.** The same charge is pending in one export and posted in the
   next. That's needed for testing the 3-day cadence.

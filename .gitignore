@@ -1,6 +1,7 @@
 # pixi environments
 .pixi/
 __pycache__/
+.pytest_cache/
 *.egg-info/
 
 # Per-machine model binding, written by `pixi run use`. Holds no key, but it
@@ -10,3 +11,6 @@ model.json
 # Real statements and exports never go in the repo. Put them in private/.
 private/
 *.pdf
+
+# Results written by `pixi run code`. They contain transaction rows.
+output/
