@@ -1,0 +1,16 @@
+# Charges accounting already knows recur, such as direct debits and standing
+# orders.
+#
+# SYNTHETIC PLACEHOLDER. Replace with accounting's list.
+#
+# A vendor here counts as established even with no history. That is how a new
+# Cog install, or an annual subscription, gets labelled recurring before there
+# are enough months to show it. `amount` is optional: when given, a charge must
+# be within tolerance of it as well.
+version: "0.0.1"
+status: synthetic
+
+recurring:
+  - {vendor: google-workspace, cadence: monthly, amount: 336.00}
+  - {vendor: slack, cadence: monthly, amount: 1068.75}
+  - {vendor: github, cadence: monthly}

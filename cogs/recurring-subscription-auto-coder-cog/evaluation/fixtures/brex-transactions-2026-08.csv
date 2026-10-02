@@ -1,0 +1,35 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+tx_0801a,,posted,2026-08-01,2026-08-02,4417,Jordan Lee,GITHUB.COM 4ZK8M,252.00,USD,,,Software,,true
+tx_0801b,,posted,2026-08-01,2026-08-02,4417,Jordan Lee,AWS EMEA aws.amazon.co,1702.55,USD,,,Software,,false
+tx_0801c,,posted,2026-08-01,2026-08-03,4417,Jordan Lee,Amazon Web Services aws.amazon.co,405.13,USD,,,Software,,false
+tx_0801d,,posted,2026-08-01,2026-08-02,1290,Alex Rivera,GOOGLE *Workspace_openteam,336.00,USD,,,Software,,true
+tx_0802a,,posted,2026-08-02,2026-08-03,1290,Alex Rivera,SLACK T03AB9XYZ,1068.75,USD,,,Software,,true
+tx_0802b,,posted,2026-08-02,2026-08-03,8823,Morgan Chen,ATLASSIAN,385.00,USD,,,Software,,false
+tx_0802c,,posted,2026-08-02,2026-08-04,8823,Morgan Chen,FIGMA MONTHLY RENEWAL,135.00,USD,,,Software,,true
+tx_0803a,,posted,2026-08-03,2026-08-04,1290,Alex Rivera,ZOOM.US 888-799-9666,149.90,USD,,,Software,,true
+tx_0803b,,posted,2026-08-03,2026-08-04,4417,Jordan Lee,1PASSWORD* BUSINESS,95.88,USD,,,Software,,false
+tx_0804a,,posted,2026-08-04,2026-08-05,8823,Morgan Chen,NOTION LABS INC,120.00,USD,,,Software,,true
+tx_0804b,,posted,2026-08-04,2026-08-05,4417,Jordan Lee,VERCEL INC.,40.00,USD,,,Software,,false
+tx_0805a,,posted,2026-08-05,2026-08-08,4417,Jordan Lee,DATADOG INC,590.10,USD,,,Software,,false
+tx_0805b,,posted,2026-08-05,2026-08-08,5561,Priya Nair,HUBSPOT INC,890.00,USD,,,Software,,true
+tx_0807a,,posted,2026-08-07,2026-08-08,1290,Alex Rivera,DOCUSIGN INC,65.00,USD,,,Software,,true
+tx_0808a,,posted,2026-08-08,2026-08-09,8823,Morgan Chen,LINEAR ORBIT INC,128.00,USD,,,Software,,false
+tx_0808b,,posted,2026-08-08,2026-08-09,5561,Priya Nair,LINKEDIN SALES NAV,99.99,USD,,,Software,,false
+tx_0809a,,posted,2026-08-09,2026-08-10,4417,Jordan Lee,CLOUDFLARE,25.00,USD,,,Software,,false
+tx_0809b,,posted,2026-08-09,2026-08-10,4417,Jordan Lee,SENTRY,80.00,USD,,,Software,,false
+tx_0810a,,posted,2026-08-10,2026-08-11,1290,Alex Rivera,DROPBOX*BUSINESS,72.00,USD,,,Software,,true
+tx_0810b,,posted,2026-08-10,2026-08-11,5561,Priya Nair,ADOBE *CREATIVE CLD,89.99,USD,,,Software,,true
+tx_0811a,,posted,2026-08-11,2026-08-12,8823,Morgan Chen,TWILIO SENDGRID,21.40,USD,,,Software,,false
+tx_0812a,,posted,2026-08-12,2026-08-15,8823,Morgan Chen,POSTMAN INC,49.00,USD,,,Software,,false
+tx_0812b,,posted,2026-08-12,2026-08-15,8823,Morgan Chen,MIRO.COM,32.00,USD,,,Software,,false
+tx_0814a,,posted,2026-08-14,2026-08-15,4417,Jordan Lee,OPENAI *CHATGPT TEAM,150.00,USD,,,Software,,false
+tx_0814b,,posted,2026-08-14,2026-08-15,8823,Morgan Chen,ANTHROPIC,200.00,USD,,,Software,,false
+tx_0815a,,posted,2026-08-15,2026-08-16,4417,Jordan Lee,JETBRAINS S.R.O.,77.90,USD,,,Software,,false
+tx_0815b,,posted,2026-08-15,2026-08-16,1290,Alex Rivera,CALENDLY,48.00,USD,,,Software,,true
+tx_0816a,,posted,2026-08-16,2026-08-17,8823,Morgan Chen,DOCKER INC,45.00,USD,,,Software,,false
+tx_0816b,,posted,2026-08-16,2026-08-17,5561,Priya Nair,CANVA* I04512-98213,119.99,USD,,,Software,,false
+tx_0817a,,posted,2026-08-17,2026-08-18,4417,Jordan Lee,RENDER.COM,85.00,USD,,,Software,,false
+tx_0820l,,posted,2026-08-20,2026-08-21,8823,Morgan Chen,LOOM.COM,75.00,USD,,,Software,,false
+tx_0820o,,posted,2026-08-22,2026-08-23,1290,Alex Rivera,UNITED 0162384712290,512.80,USD,,,Travel,,false
+tx_0821o,,posted,2026-08-23,2026-08-24,1290,Alex Rivera,HILTON GARDEN INN,389.10,USD,,,Lodging,,false
+tx_0822o,,posted,2026-08-24,2026-08-25,5561,Priya Nair,SQ *PRINTWORKS,64.00,USD,,,Office,,false

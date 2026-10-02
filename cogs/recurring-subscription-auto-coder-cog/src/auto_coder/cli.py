@@ -2,9 +2,31 @@
 can be added later without rewriting it."""
 import argparse
 import json
+import os
 import sys
+from pathlib import Path
 
-from auto_coder import model
+from auto_coder import context, core, model, report
+from cog_transactions import load
+
+
+def _path(p):
+    # pixi runs tasks from the Cog root, so a relative path the user typed is
+    # resolved against where they typed it (pixi sets INIT_CWD to that).
+    p = Path(p)
+    return p if p.is_absolute() else Path(os.environ.get("INIT_CWD", ".")) / p
+
+
+def cmd_code(args):
+    try:
+        result = core.run(_path(args.month), [_path(h) for h in args.history or []],
+                          _path(args.context) if args.context else context.DEFAULT_DIR)
+    except (load.ExportError, context.ContextError, FileNotFoundError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        sys.exit(2)
+    json_path, csv_path = report.write(result, _path(args.out))
+    print(report.summary(result))
+    print(f"\nwrote {json_path}\nwrote {csv_path}")
 
 
 def cmd_check(args):
@@ -53,6 +75,13 @@ def cmd_use(args):
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="auto_coder")
     sub = ap.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("code", help="label recurring charges and propose codings (no model)")
+    p.add_argument("month", help="CSV export of the month to code")
+    p.add_argument("--history", nargs="*", help="CSV exports of earlier months")
+    p.add_argument("--context", help="directory of lookup files (default: this Cog's context/)")
+    p.add_argument("--out", default="output", help="where to write results (default: ./output)")
+    p.set_defaults(func=cmd_code)
 
     p = sub.add_parser("check", help="prove the model answers with a one-token completion")
     p.add_argument("--json", action="store_true", help="print the full result as JSON")

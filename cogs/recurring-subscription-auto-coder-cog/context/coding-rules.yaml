@@ -1,0 +1,40 @@
+# Vendor -> QuickBooks coding, built from how accounting coded past months.
+#
+# SYNTHETIC PLACEHOLDER. Replace with rules from accounting's real codings.
+# Build them from different months than the ones used for evaluation, or the
+# evaluation only measures whether the rules were copied correctly.
+#
+# A recurring vendor with no rule here is marked needs-human. Postman, Miro and
+# Calendly are left out on purpose so that case is exercised.
+version: "0.0.1"
+status: synthetic
+
+rules:
+  - {vendor: github, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: aws, account: "6120", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: google-workspace, account: "6110", class: G&A, department: Operations, entity: OpenTeams}
+  - {vendor: slack, account: "6110", class: G&A, department: Operations, entity: OpenTeams}
+  - {vendor: atlassian, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: figma, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: zoom, account: "6110", class: G&A, department: Operations, entity: OpenTeams}
+  - {vendor: 1password, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: notion, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: vercel, account: "6120", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: datadog, account: "6120", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: hubspot, account: "6210", class: Sales, department: Sales, entity: OpenTeams}
+  - {vendor: docusign, account: "6110", class: G&A, department: Operations, entity: OpenTeams}
+  - {vendor: linear, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: linkedin-sales-navigator, account: "6210", class: Sales, department: Sales, entity: OpenTeams}
+  - {vendor: cloudflare, account: "6120", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: sentry, account: "6120", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: dropbox, account: "6110", class: G&A, department: Operations, entity: OpenTeams}
+  - {vendor: adobe, account: "6210", class: Marketing, department: Marketing, entity: OpenTeams}
+  - {vendor: twilio, account: "6120", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: openai, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: anthropic, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: jetbrains, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: docker, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: canva, account: "6210", class: Marketing, department: Marketing, entity: OpenTeams}
+  - {vendor: render, account: "6120", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: grafana, account: "6120", class: Engineering, department: Engineering, entity: OpenTeams}
+  - {vendor: loom, account: "6110", class: Engineering, department: Engineering, entity: OpenTeams}

@@ -7,6 +7,11 @@ platforms = ["linux-64", "osx-arm64"]
 
 [dependencies]
 python = ">=3.11"
+# Frames are YAML so accounting can read and edit them.
+pyyaml = ">=6"
+pytest = ">=8"
+# Tests check every output against context/output-schema.json.
+jsonschema = ">=4.18"
 
 [pypi-dependencies]
 # Installed editable, so `python -m auto_coder` works from any directory and the
@@ -15,6 +20,13 @@ auto-coder = { path = ".", editable = true }
 
 [tasks]
 # --- interfaces ---
+
+# Label recurring charges and propose codings. No model is used.
+#   pixi run code month.csv --history earlier1.csv earlier2.csv [--out DIR]
+code = "python -m auto_coder code"
+
+# The same, on the synthetic fixtures shipped with this Cog.
+demo = "python -m auto_coder code evaluation/fixtures/brex-transactions-2026-09.csv --history evaluation/fixtures/brex-transactions-2026-07.csv evaluation/fixtures/brex-transactions-2026-08.csv"
 
 # Prove the model answers: a one-token completion, not a /models listing,
 # which gateways serve without checking the key or the model.
@@ -25,6 +37,9 @@ check = "python -m auto_coder check"
 #   pixi run use local
 #   pixi run use --endpoint http://127.0.0.1:8080/v1 --model qwen2.5-3b-instruct
 use = "python -m auto_coder use"
+
+# --- development ---
+test = "pytest -q tests"
 
 # NOTE: no [activation.env], deliberately. Activation variables override what you
 # export in your shell and silently pin every run to the wrong endpoint.

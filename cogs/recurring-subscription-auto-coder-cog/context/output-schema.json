@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "output-schema.json",
+  "title": "Recurring subscription auto-coder result",
+  "description": "The normative contract for `pixi run code` output. Each transaction is in the shared shape, plus this Cog's inferred keys.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run",
+    "transactions",
+    "expected_but_missing",
+    "unmatched_descriptors",
+    "unparsed"
+  ],
+  "properties": {
+    "run": {
+      "type": "object",
+      "required": [
+        "cog",
+        "version",
+        "transaction_shape",
+        "at",
+        "mode",
+        "binding",
+        "inputs",
+        "context",
+        "tolerance",
+        "counts",
+        "abstention_rate",
+        "warnings"
+      ],
+      "properties": {
+        "cog": {
+          "const": "recurring-subscription-auto-coder-cog"
+        },
+        "version": {
+          "type": "string"
+        },
+        "transaction_shape": {
+          "const": "0.1.0"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "mode": {
+          "enum": [
+            "strict",
+            "model"
+          ]
+        },
+        "binding": {
+          "description": "null in strict mode. Otherwise endpoint, model requested, model echoed, and where the binding was resolved from.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "endpoint",
+                "model_requested",
+                "model_echoed",
+                "source"
+              ]
+            }
+          ]
+        },
+        "inputs": {
+          "type": "object",
+          "required": [
+            "month",
+            "history"
+          ]
+        },
+        "context": {
+          "type": "object"
+        },
+        "tolerance": {
+          "type": "number"
+        },
+        "counts": {
+          "type": "object"
+        },
+        "abstention_rate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "transactions": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "transaction.schema.json"
+          },
+          {
+            "properties": {
+              "inferred": {
+                "required": [
+                  "vendor",
+                  "recurrence",
+                  "coding"
+                ],
+                "properties": {
+                  "recurrence": {
+                    "type": "object",
+                    "required": [
+                      "label",
+                      "reason",
+                      "source",
+                      "evidence"
+                    ],
+                    "properties": {
+                      "label": {
+                        "enum": [
+                          "recurring",
+                          "likely-recurring",
+                          "amount-changed",
+                          "new",
+                          "one-off"
+                        ]
+                      },
+                      "source": {
+                        "enum": [
+                          "history",
+                          "context"
+                        ]
+                      }
+                    }
+                  },
+                  "coding": {
+                    "type": "object",
+                    "required": [
+                      "status",
+                      "source"
+                    ],
+                    "properties": {
+                      "status": {
+                        "enum": [
+                          "proposed",
+                          "needs-human",
+                          "waiting-for-post",
+                          "not-coded"
+                        ]
+                      }
+                    },
+                    "if": {
+                      "properties": {
+                        "status": {
+                          "const": "proposed"
+                        }
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "account",
+                        "class",
+                        "department",
+                        "entity"
+                      ],
+                      "properties": {
+                        "source": {
+                          "const": "rule"
+                        }
+                      }
+                    },
+                    "else": {
+                      "required": [
+                        "reason"
+                      ],
+                      "properties": {
+                        "source": {
+                          "const": "none"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "expected_but_missing": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "vendor",
+          "known_recurring",
+          "months_seen",
+          "last_amount"
+        ]
+      }
+    },
+    "unmatched_descriptors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unparsed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "file",
+          "row",
+          "reason"
+        ]
+      }
+    }
+  }
+}

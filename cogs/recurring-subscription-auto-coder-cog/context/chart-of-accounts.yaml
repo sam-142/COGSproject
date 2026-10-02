@@ -1,0 +1,16 @@
+# The accounts, classes, departments and entities a coding may use.
+#
+# SYNTHETIC PLACEHOLDER. Replace with OpenTeams' QuickBooks setup.
+#
+# Coding rules are checked against these lists when the frames load, so a typo
+# in a rule fails loudly instead of producing a coding QuickBooks won't accept.
+version: "0.0.1"
+status: synthetic
+
+accounts:
+  - {number: "6110", name: Software Subscriptions}
+  - {number: "6120", name: Cloud Hosting}
+  - {number: "6210", name: Sales and Marketing Software}
+classes: [Engineering, Sales, Marketing, G&A]
+departments: [Engineering, Sales, Marketing, Operations]
+entities: [OpenTeams]

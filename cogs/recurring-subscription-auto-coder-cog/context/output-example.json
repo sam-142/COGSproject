@@ -1,0 +1,303 @@
+{
+  "run": {
+    "cog": "recurring-subscription-auto-coder-cog",
+    "version": "0.0.1",
+    "transaction_shape": "0.1.0",
+    "at": "2026-10-02T12:00:00+00:00",
+    "mode": "strict",
+    "binding": null,
+    "inputs": {
+      "month": {
+        "file": "brex-transactions-2026-09.csv",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "history": [
+        {
+          "file": "brex-transactions-2026-07.csv",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "file": "brex-transactions-2026-08.csv",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    "context": {
+      "vendors": {
+        "version": "0.0.1",
+        "status": "synthetic"
+      },
+      "known-recurring": {
+        "version": "0.0.1",
+        "status": "synthetic"
+      },
+      "coding-rules": {
+        "version": "0.0.1",
+        "status": "synthetic"
+      },
+      "chart-of-accounts": {
+        "version": "0.0.1",
+        "status": "synthetic"
+      }
+    },
+    "tolerance": 0.1,
+    "counts": {
+      "transactions": 51,
+      "history_transactions": 67,
+      "unparsed_rows": 0,
+      "unmatched_descriptors": 5,
+      "labels": {
+        "amount-changed": 1,
+        "likely-recurring": 1,
+        "new": 1,
+        "one-off": 18,
+        "recurring": 30
+      },
+      "coding": {
+        "needs-human": 6,
+        "not-coded": 18,
+        "proposed": 26,
+        "waiting-for-post": 1
+      }
+    },
+    "abstention_rate": 0.188,
+    "warnings": [
+      "synthetic context files in use: vendors, known-recurring, coding-rules, chart-of-accounts"
+    ]
+  },
+  "transactions": [
+    {
+      "id": "tx_0905a",
+      "source": {
+        "file": "brex-transactions-2026-09.csv",
+        "row": 13
+      },
+      "parsed": {
+        "transaction_id": "tx_0905a",
+        "pending_transaction_id": null,
+        "status": "posted",
+        "transaction_date": "2026-09-05",
+        "posted_date": "2026-09-08",
+        "card_last4": "4417",
+        "cardholder": "Jordan Lee",
+        "merchant_descriptor": "DATADOG INC",
+        "amount": 611.42,
+        "currency": "USD",
+        "original_amount": null,
+        "original_currency": null,
+        "brex_category": "Software",
+        "memo": null,
+        "receipt_attached": false
+      },
+      "inferred": {
+        "vendor": {
+          "id": "datadog",
+          "category": "subscription",
+          "source": "context",
+          "pattern": "^DATADOG"
+        },
+        "recurrence": {
+          "label": "recurring",
+          "reason": "amount matches 2+ earlier months",
+          "source": "history",
+          "evidence": {
+            "known_recurring": false,
+            "months_seen": [
+              "2026-07",
+              "2026-08"
+            ],
+            "months_matching_amount": [
+              "2026-07",
+              "2026-08"
+            ],
+            "earlier_amounts": [
+              575.0,
+              590.1
+            ]
+          }
+        },
+        "coding": {
+          "status": "proposed",
+          "source": "rule",
+          "account": "6120",
+          "class": "Engineering",
+          "department": "Engineering",
+          "entity": "OpenTeams"
+        }
+      }
+    },
+    {
+      "id": "tx_0910c",
+      "source": {
+        "file": "brex-transactions-2026-09.csv",
+        "row": 33
+      },
+      "parsed": {
+        "transaction_id": "tx_0910c",
+        "pending_transaction_id": null,
+        "status": "posted",
+        "transaction_date": "2026-09-10",
+        "posted_date": "2026-09-11",
+        "card_last4": "1290",
+        "cardholder": "Alex Rivera",
+        "merchant_descriptor": "DELTA AIR 0062384719263",
+        "amount": 684.4,
+        "currency": "USD",
+        "original_amount": null,
+        "original_currency": null,
+        "brex_category": "Travel",
+        "memo": null,
+        "receipt_attached": false
+      },
+      "inferred": {
+        "vendor": {
+          "id": "delta",
+          "category": "travel",
+          "source": "context",
+          "pattern": "^DELTA AIR"
+        },
+        "recurrence": {
+          "label": "one-off",
+          "reason": "travel vendor",
+          "source": "history",
+          "evidence": {
+            "known_recurring": false,
+            "months_seen": [],
+            "months_matching_amount": [],
+            "earlier_amounts": []
+          }
+        },
+        "coding": {
+          "status": "not-coded",
+          "source": "none",
+          "reason": "not a recurring charge"
+        }
+      }
+    },
+    {
+      "id": "tx_0924a",
+      "source": {
+        "file": "brex-transactions-2026-09.csv",
+        "row": 45
+      },
+      "parsed": {
+        "transaction_id": "tx_0924a",
+        "pending_transaction_id": null,
+        "status": "posted",
+        "transaction_date": "2026-09-24",
+        "posted_date": "2026-09-25",
+        "card_last4": "1290",
+        "cardholder": "Alex Rivera",
+        "merchant_descriptor": "SLACK T03AB9XYZ",
+        "amount": 142.5,
+        "currency": "USD",
+        "original_amount": null,
+        "original_currency": null,
+        "brex_category": "Software",
+        "memo": null,
+        "receipt_attached": false
+      },
+      "inferred": {
+        "vendor": {
+          "id": "slack",
+          "category": "subscription",
+          "source": "context",
+          "pattern": "^SLACK "
+        },
+        "recurrence": {
+          "label": "amount-changed",
+          "reason": "established vendor; no earlier charge within tolerance",
+          "source": "history",
+          "evidence": {
+            "known_recurring": true,
+            "months_seen": [
+              "2026-07",
+              "2026-08"
+            ],
+            "months_matching_amount": [],
+            "earlier_amounts": [
+              1068.75
+            ]
+          }
+        },
+        "coding": {
+          "status": "needs-human",
+          "source": "none",
+          "reason": "amount-changed: established vendor; no earlier charge within tolerance"
+        }
+      }
+    },
+    {
+      "id": "px_0928a",
+      "source": {
+        "file": "brex-transactions-2026-09.csv",
+        "row": 48
+      },
+      "parsed": {
+        "transaction_id": "px_0928a",
+        "pending_transaction_id": null,
+        "status": "pending",
+        "transaction_date": "2026-09-28",
+        "posted_date": null,
+        "card_last4": "4417",
+        "cardholder": "Jordan Lee",
+        "merchant_descriptor": "AMAZON WEB SERVICES",
+        "amount": 1500.0,
+        "currency": "USD",
+        "original_amount": null,
+        "original_currency": null,
+        "brex_category": "Software",
+        "memo": null,
+        "receipt_attached": false
+      },
+      "inferred": {
+        "vendor": {
+          "id": "aws",
+          "category": "subscription",
+          "source": "context",
+          "pattern": "AMAZON WEB SERVICES"
+        },
+        "recurrence": {
+          "label": "recurring",
+          "reason": "established vendor; pending, so amount not compared yet",
+          "source": "history",
+          "evidence": {
+            "known_recurring": false,
+            "months_seen": [
+              "2026-07",
+              "2026-08"
+            ],
+            "months_matching_amount": [],
+            "earlier_amounts": [
+              398.42,
+              405.13,
+              1702.55,
+              1781.1
+            ]
+          }
+        },
+        "coding": {
+          "status": "waiting-for-post",
+          "source": "none",
+          "reason": "pending amounts can still change"
+        }
+      }
+    }
+  ],
+  "expected_but_missing": [
+    {
+      "vendor": "loom",
+      "known_recurring": false,
+      "months_seen": [
+        "2026-07",
+        "2026-08"
+      ],
+      "last_amount": 75.0
+    }
+  ],
+  "unmatched_descriptors": [
+    "DISHOOM LONDON",
+    "SQ *BLUE BOTTLE COFF"
+  ],
+  "unparsed": []
+}
