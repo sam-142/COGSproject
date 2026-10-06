@@ -1,0 +1,260 @@
+{
+  "run": {
+    "cog": "chase-list-builder-cog",
+    "version": "0.0.1",
+    "transaction_shape": "0.1.0",
+    "at": "2026-10-06T12:00:00+00:00",
+    "mode": "strict",
+    "binding": null,
+    "inputs": [
+      {
+        "file": "brex-export-2026-09-27.csv",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "file": "brex-export-2026-09-30.csv",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ],
+    "coded": null,
+    "log": null,
+    "context": {
+      "vendors": {
+        "version": "0.0.1",
+        "status": "synthetic"
+      },
+      "cards": {
+        "version": "0.0.1",
+        "status": "synthetic"
+      },
+      "chase-policy": {
+        "version": "0.0.1",
+        "status": "placeholder"
+      }
+    },
+    "template": "message-template.md",
+    "period": {
+      "from": "2026-09-24",
+      "to": "2026-09-30"
+    },
+    "counts": {
+      "rows_read": 10,
+      "transactions": 8,
+      "duplicates_dropped": 0,
+      "pending_superseded": 2,
+      "unparsed_rows": 0,
+      "unmatched_descriptors": 3,
+      "chase": {
+        "draft": 8
+      },
+      "drafts": 8
+    },
+    "warnings": [
+      "placeholder context files in use: vendors, cards, chase-policy",
+      "no chase log: charges chased before will be drafted again",
+      "no auto-coder output: recurring charges it would code are chased too",
+      "1 posted charge(s) linked to a pending one by matching card, merchant and date, not by the export; check them: tx_0926a"
+    ]
+  },
+  "transactions": [
+    {
+      "id": "tx_0924a",
+      "source": {
+        "file": "brex-export-2026-09-27.csv",
+        "row": 2
+      },
+      "parsed": {
+        "transaction_id": "tx_0924a",
+        "pending_transaction_id": null,
+        "status": "posted",
+        "transaction_date": "2026-09-24",
+        "posted_date": "2026-09-25",
+        "card_last4": "1290",
+        "cardholder": "Alex Rivera",
+        "merchant_descriptor": "SLACK T03AB9XYZ",
+        "amount": 142.5,
+        "currency": "USD",
+        "original_amount": null,
+        "original_currency": null,
+        "brex_category": "Software",
+        "memo": null,
+        "receipt_attached": false
+      },
+      "inferred": {
+        "vendor": {
+          "id": "slack",
+          "category": "subscription",
+          "source": "context",
+          "pattern": "^SLACK "
+        },
+        "route": {
+          "source": "context",
+          "channel": "#card-1290",
+          "users": [
+            "Alex Rivera"
+          ],
+          "shared": false
+        },
+        "chase": {
+          "source": "rule",
+          "status": "draft",
+          "reason": "no information on file for this charge",
+          "ask_for": [
+            "purpose",
+            "department",
+            "receipt"
+          ]
+        }
+      }
+    },
+    {
+      "id": "tx_0926a",
+      "source": {
+        "file": "brex-export-2026-09-30.csv",
+        "row": 3
+      },
+      "parsed": {
+        "transaction_id": "tx_0926a",
+        "pending_transaction_id": null,
+        "status": "posted",
+        "transaction_date": "2026-09-26",
+        "posted_date": "2026-09-29",
+        "card_last4": "7742",
+        "cardholder": "Riley Patel",
+        "merchant_descriptor": "TST* LUCKY BAR & GRILL",
+        "amount": 96.25,
+        "currency": "USD",
+        "original_amount": null,
+        "original_currency": null,
+        "brex_category": "Restaurants",
+        "memo": null,
+        "receipt_attached": false
+      },
+      "inferred": {
+        "vendor": {
+          "id": null,
+          "category": null,
+          "source": "none",
+          "reason": "no pattern in the vendor list matches"
+        },
+        "pending_match": {
+          "source": "match",
+          "pending_transaction_id": "px_0926z",
+          "basis": "same card and merchant, transaction dates 0 day(s) apart",
+          "pending_amount": 80.0
+        },
+        "route": {
+          "source": "context",
+          "channel": "#card-7742",
+          "users": [
+            "Riley Patel"
+          ],
+          "shared": false
+        },
+        "chase": {
+          "source": "rule",
+          "status": "draft",
+          "reason": "no information on file for this charge",
+          "ask_for": [
+            "purpose",
+            "department",
+            "receipt"
+          ]
+        }
+      }
+    },
+    {
+      "id": "px_0928a",
+      "source": {
+        "file": "brex-export-2026-09-30.csv",
+        "row": 4
+      },
+      "parsed": {
+        "transaction_id": "px_0928a",
+        "pending_transaction_id": null,
+        "status": "pending",
+        "transaction_date": "2026-09-28",
+        "posted_date": null,
+        "card_last4": "4417",
+        "cardholder": "Jordan Lee",
+        "merchant_descriptor": "AMAZON WEB SERVICES",
+        "amount": 1500.0,
+        "currency": "USD",
+        "original_amount": null,
+        "original_currency": null,
+        "brex_category": "Software",
+        "memo": null,
+        "receipt_attached": false
+      },
+      "inferred": {
+        "vendor": {
+          "id": "aws",
+          "category": "subscription",
+          "source": "context",
+          "pattern": "AMAZON WEB SERVICES"
+        },
+        "route": {
+          "source": "context",
+          "channel": "#card-4417",
+          "users": [
+            "Jordan Lee",
+            "Morgan Chen",
+            "Taylor Brooks"
+          ],
+          "shared": true
+        },
+        "chase": {
+          "source": "rule",
+          "status": "draft",
+          "reason": "no information on file for this charge",
+          "ask_for": [
+            "purpose",
+            "department",
+            "receipt"
+          ]
+        }
+      }
+    }
+  ],
+  "superseded": [
+    {
+      "pending_id": "px_0925a",
+      "replaced_by": "tx_0925a",
+      "how": "export"
+    },
+    {
+      "pending_id": "px_0926z",
+      "replaced_by": "tx_0926a",
+      "how": "match"
+    }
+  ],
+  "drafts": [
+    {
+      "id": "draft-tx_0924a",
+      "transaction_id": "tx_0924a",
+      "channel": "#card-1290",
+      "needs_routing": false,
+      "text": "A charge on card ending 1290 needs a few details for accounting:\n\n> *SLACK T03AB9XYZ*, 142.50 USD on 2026-09-24\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0924a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
+    },
+    {
+      "id": "draft-tx_0926a",
+      "transaction_id": "tx_0926a",
+      "channel": "#card-7742",
+      "needs_routing": false,
+      "text": "A charge on card ending 7742 needs a few details for accounting:\n\n> *TST* LUCKY BAR & GRILL*, 96.25 USD on 2026-09-26\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0926a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
+    },
+    {
+      "id": "draft-px_0928a",
+      "transaction_id": "px_0928a",
+      "channel": "#card-4417",
+      "needs_routing": false,
+      "text": "A charge on card ending 4417 needs a few details for accounting:\n\n> *AMAZON WEB SERVICES*, 1,500.00 USD on 2026-09-28 (pending: the amount may change when it settles)\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: px_0928a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
+    }
+  ],
+  "unmatched_descriptors": [
+    "SQ *PRINTWORKS",
+    "TST* LUCKY BAR & GRI",
+    "TST* LUCKY BAR & GRILL"
+  ],
+  "unparsed": []
+}

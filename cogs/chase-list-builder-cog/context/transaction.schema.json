@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "transaction.schema.json",
+  "title": "Transaction (shared shape 0.1.0)",
+  "description": "SHARED WITH chase-list-builder-cog; keep both copies identical. A field appears in parsed or inferred, never both.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "source",
+    "parsed",
+    "inferred"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "source": {
+      "description": "Where the row was read from.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "row"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "row": {
+          "type": "integer",
+          "minimum": 2
+        }
+      }
+    },
+    "parsed": {
+      "description": "Values read straight from the export. Nothing else.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transaction_id",
+        "pending_transaction_id",
+        "status",
+        "transaction_date",
+        "posted_date",
+        "card_last4",
+        "cardholder",
+        "merchant_descriptor",
+        "amount",
+        "currency",
+        "original_amount",
+        "original_currency",
+        "brex_category",
+        "memo",
+        "receipt_attached"
+      ],
+      "properties": {
+        "transaction_id": {
+          "type": "string"
+        },
+        "pending_transaction_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "posted"
+          ]
+        },
+        "transaction_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "posted_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "card_last4": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{4}$"
+        },
+        "cardholder": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "merchant_descriptor": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "currency": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "original_amount": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "original_currency": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "brex_category": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "memo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "receipt_attached": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "inferred": {
+      "description": "Everything worked out afterwards. Each Cog adds its own keys; none may reuse a parsed field name, and each value names its source.",
+      "type": "object",
+      "propertyNames": {
+        "not": {
+          "enum": [
+            "transaction_id",
+            "pending_transaction_id",
+            "status",
+            "transaction_date",
+            "posted_date",
+            "card_last4",
+            "cardholder",
+            "merchant_descriptor",
+            "amount",
+            "currency",
+            "original_amount",
+            "original_currency",
+            "brex_category",
+            "memo",
+            "receipt_attached"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "source"
+        ],
+        "properties": {
+          "source": {
+            "enum": [
+              "context",
+              "history",
+              "rule",
+              "match",
+              "model",
+              "none"
+            ]
+          }
+        }
+      },
+      "properties": {
+        "vendor": {
+          "type": "object",
+          "required": [
+            "id",
+            "category",
+            "source"
+          ],
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "category": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

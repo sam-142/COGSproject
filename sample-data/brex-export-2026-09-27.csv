@@ -1,0 +1,4 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+tx_0924a,,posted,2026-09-24,2026-09-25,1290,Alex Rivera,SLACK T03AB9XYZ,142.50,USD,,,Software,,false
+px_0925a,,pending,2026-09-25,,3308,Casey Kim,UBER *PENDING,23.50,USD,,,Travel,,false
+px_0926z,,pending,2026-09-26,,7742,Riley Patel,TST* LUCKY BAR & GRI,80.00,USD,,,Restaurants,,false

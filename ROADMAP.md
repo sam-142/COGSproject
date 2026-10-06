@@ -101,6 +101,11 @@ They asked for proposals they can say yes or no to, so nobody spends time on thi
 
 ## Phase 4: Chase-list builder
 
+**Status: built ahead of Phase 3, on synthetic data.** Drafts one message per charge from an
+editable template, routed to a channel per card; works on any number of exports of any length;
+links pending charges to posted ones; a chase log records what a person actually sent. Not built:
+reading replies (step 6), the model step, and evaluation. The list below is the original plan.
+
 1. **Draft `COG.md`.** Unsupported work states plainly that it **writes drafts and returns them**.
    Sending to Slack or email is a separate step that a person approves.
 2. **Copy in the Phase 1 reading code** and add a test that both Cogs read the same fixture into the

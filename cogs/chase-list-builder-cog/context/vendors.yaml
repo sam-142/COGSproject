@@ -1,0 +1,63 @@
+# Merchant descriptor patterns -> one vendor id.
+#
+# SHARED WITH chase-list-builder-cog, along with src/cog_transactions/. Keep
+# the two copies identical.
+#
+# SYNTHETIC PLACEHOLDER. Replace with patterns built from real exports.
+#
+# Patterns are case-insensitive regular expressions, searched anywhere in the
+# descriptor. The first vendor with a matching pattern wins, so keep patterns
+# specific enough not to overlap: `AMAZON WEB SERVICES` is aws, `AMZN Mktp` is
+# not.
+#
+# `category: subscription` is what lets a vendor seen for the first time be
+# labelled `new` rather than `one-off`. Every other category is passed over.
+version: "0.0.1"
+status: synthetic
+
+vendors:
+  # --- subscriptions ---
+  - {id: github, category: subscription, patterns: ['^GITHUB']}
+  - {id: aws, category: subscription, patterns: ['^AWS ', 'AMAZON WEB SERVICES']}
+  - {id: google-workspace, category: subscription, patterns: ['GOOGLE \*WORKSPACE']}
+  - {id: slack, category: subscription, patterns: ['^SLACK ']}
+  - {id: atlassian, category: subscription, patterns: ['^ATLASSIAN']}
+  - {id: figma, category: subscription, patterns: ['^FIGMA']}
+  - {id: zoom, category: subscription, patterns: ['^ZOOM\.US']}
+  - {id: 1password, category: subscription, patterns: ['^1PASSWORD']}
+  - {id: notion, category: subscription, patterns: ['^NOTION LABS']}
+  - {id: vercel, category: subscription, patterns: ['^VERCEL']}
+  - {id: datadog, category: subscription, patterns: ['^DATADOG']}
+  - {id: hubspot, category: subscription, patterns: ['^HUBSPOT']}
+  - {id: docusign, category: subscription, patterns: ['^DOCUSIGN']}
+  - {id: linear, category: subscription, patterns: ['^LINEAR ']}
+  - {id: linkedin-sales-navigator, category: subscription, patterns: ['^LINKEDIN SALES']}
+  - {id: cloudflare, category: subscription, patterns: ['^CLOUDFLARE']}
+  - {id: sentry, category: subscription, patterns: ['^SENTRY']}
+  - {id: dropbox, category: subscription, patterns: ['^DROPBOX']}
+  - {id: adobe, category: subscription, patterns: ['^ADOBE ']}
+  - {id: twilio, category: subscription, patterns: ['^TWILIO']}
+  - {id: postman, category: subscription, patterns: ['^POSTMAN']}
+  - {id: miro, category: subscription, patterns: ['^MIRO\.COM']}
+  - {id: openai, category: subscription, patterns: ['^OPENAI ']}
+  - {id: anthropic, category: subscription, patterns: ['^ANTHROPIC']}
+  - {id: jetbrains, category: subscription, patterns: ['^JETBRAINS']}
+  - {id: calendly, category: subscription, patterns: ['^CALENDLY']}
+  - {id: docker, category: subscription, patterns: ['^DOCKER ']}
+  - {id: canva, category: subscription, patterns: ['^CANVA']}
+  - {id: render, category: subscription, patterns: ['^RENDER\.COM']}
+  - {id: grafana, category: subscription, patterns: ['^GRAFANA']}
+  - {id: loom, category: subscription, patterns: ['^LOOM']}
+
+  # --- everything else: recognised, but never coded by this Cog ---
+  - {id: delta, category: travel, patterns: ['^DELTA AIR']}
+  - {id: united, category: travel, patterns: ['^UNITED \d']}
+  - {id: uber, category: travel, patterns: ['^UBER ']}
+  - {id: tfl, category: travel, patterns: ['^TFL ']}
+  - {id: hoxton, category: lodging, patterns: ['^THE HOXTON']}
+  - {id: hilton, category: lodging, patterns: ['HILTON']}
+  - {id: marriott, category: lodging, patterns: ['^MARRIOTT']}
+  - {id: eventbrite, category: events, patterns: ['EVENTBRITE']}
+  - {id: exhibitgroup, category: events, patterns: ['^EXHIBITGROUP']}
+  - {id: vistaprint, category: office, patterns: ['^VISTAPRINT']}
+  - {id: amazon-marketplace, category: office, patterns: ['^AMZN MKTP']}

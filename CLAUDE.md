@@ -15,16 +15,16 @@ chase-list-builder-cog                  gaps -> drafted outreach -> replies fold
 **There is no shared parsing Cog.** A separate `transaction-parse-cog` was planned and scrapped: a
 whole Cog for two consumers was not worth the cost. Instead the shared part is **copied**:
 
-- `src/cog_transactions/` (reading, the shape's rules, vendor identification);
+- `src/cog_transactions/` (reading, the shape's rules, vendor identification, merging exports and
+  linking pending charges to posted ones);
 - `context/transaction.schema.json`;
-- `context/vendors.yaml`.
+- `context/vendors.yaml`;
+- `evaluation/fixtures/injection.csv`.
 
-These were written in `recurring-subscription-auto-coder-cog` and are copied into
-`chase-list-builder-cog` unchanged. Change them in one Cog, then copy them to the other; never let
-the copies differ. Anything specific to one Cog stays out of `cog_transactions`.
+Change them in one Cog, then copy them to the other; never let the copies differ. The
+chase-list builder's tests fail if they do. Anything specific to one Cog stays out of `cog_transactions`.
 
-`recurring-subscription-auto-coder-cog` is a Cog with a manifest, but no model step yet.
-`chase-list-builder-cog` is still empty. `cogs/SPEC.md` is Trent Oliphant's CogSpec v0.1 — the Cogs reference it
+Both Cogs have manifests and run end to end on synthetic data, with no model step yet. `cogs/SPEC.md` is Trent Oliphant's CogSpec v0.1 — the Cogs reference it
 but are not bound by it (`cogs/README.md`). Where this file and the spec disagree, say so rather
 than silently picking one.
 

@@ -72,7 +72,13 @@ differences from September are deliberate, so each recurrence label has a case:
 | charged in July and August, not September | Loom | expected but missing |
 | usage-billed, drifting within ±10% | AWS, Datadog, Twilio | `recurring` |
 
-### What it doesn't cover yet
+## `brex-export-2026-09-27.csv`, `brex-export-2026-09-30.csv`
 
-- **Exports taken a few days apart.** The same charge is pending in one export and posted in the
-  next. That's needed for testing the 3-day cadence.
+Two exports taken three days apart, as if Brex were exported every few days. Built from the
+September file.
+
+| Charge | 27 Sep export | 30 Sep export |
+|---|---|---|
+| Uber, card 3308 | pending `px_0925a`, `UBER *PENDING`, 23.50 | posted `tx_0925a`, 27.80, **linked** to `px_0925a` by the export |
+| Lucky Bar, card 7742 | pending `px_0926z`, `TST* LUCKY BAR & GRI`, 80.00 | posted `tx_0926a`, 96.25 with tip, **not linked**: only matchable by card, merchant and date |
+| Lucky Bar again, card 7742 | – | pending `px_0930b`, 4 days later: a different visit, must not be matched |

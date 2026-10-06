@@ -133,7 +133,8 @@ kept apart from this Cog's own logic and are meant to be **copied** into that Co
 
 - [`context/transaction.schema.json`](context/transaction.schema.json): the shape;
 - `src/cog_transactions/`: reading the CSV into that shape (`load.py`), the shape's rules
-  (`shape.py`), and vendor identification (`vendors.py`);
+  (`shape.py`), vendor identification (`vendors.py`), and merging exports and matching pending
+  charges to posted ones (`combine.py`, not used by this Cog yet);
 - [`context/vendors.yaml`](context/vendors.yaml): the vendor patterns.
 
 Each transaction has:

@@ -1,0 +1,50 @@
+# Manifest for chase-list-builder-cog.
+#
+# Format: openteams/cog-package [0.1], our own profile. CogSpec v0.1 never opens
+# this file; it only checks that COG.md names it and that it exists. Identity
+# (name, version, kind, publisher) stays in COG.md's frontmatter and is not
+# repeated here.
+
+# Every interface below is a task in pixi.toml, run as `pixi run <task>`:
+#   cli   ->  pixi run draft export.csv [more.csv ...]
+#   sent  ->  pixi run sent output/<name>.chase.json
+#   demo  ->  pixi run demo
+# The full command line lives in pixi.toml only, so it can't drift from here.
+runner: pixi
+
+# Nothing yet. Drafting is template-only. When a model step is built (to read
+# free-text replies, or to word drafts), this becomes:
+#   requires: [model-endpoint/openai-compatible]
+requires: []
+
+# Nothing. Its JSON output is a file a person or tool can read, not a capability.
+provides: []
+
+# No interface sends a message. Sending is a separate step a person takes, and
+# installing this Cog grants no access to Slack or email.
+interfaces:
+  - name: cli
+    kind: command
+    task: draft
+    default: true
+  # The approval step: records what a person actually sent.
+  - name: sent
+    kind: command
+    task: sent
+  - name: demo
+    kind: command
+    task: demo
+
+context:
+  output_schema: context/output-schema.json
+  output_example: context/output-example.json
+  transaction_schema: context/transaction.schema.json
+  message_template: context/message-template.md
+  lookup:
+    - context/vendors.yaml
+    - context/cards.yaml
+    - context/chase-policy.yaml
+
+# Markdown context for a model. Nothing reads it until a model step exists.
+frames:
+  - frames/chasing.md

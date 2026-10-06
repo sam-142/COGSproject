@@ -28,7 +28,7 @@ chase-list builder unchanged.
 | Cog | Status |
 |---|---|
 | `recurring-subscription-auto-coder-cog` | a Cog (has its manifest): runs end to end on the synthetic CSVs, no model step yet |
-| `chase-list-builder-cog` | empty |
+| `chase-list-builder-cog` | a Cog (has its manifest): drafts one message per charge from a template, no model step yet; reading replies not built |
 
 ---
 
@@ -142,22 +142,86 @@ pixi run test
 
 ---
 
+**Chase-list builder**
+
+```
+chase-list-builder-cog/
+  COG.md              what the Cog does and doesn't do, and where a person approves
+  cog.yaml            manifest: interfaces (draft, sent, demo), where context lives
+  pixi.toml           environment + tasks
+
+  src/cog_transactions/   SHARED - identical to the auto-coder's copy
+  src/chase_list/
+    cli.py                commands: draft, sent
+    core.py               runs the steps in order, builds the run record
+    context.py            loads and checks cards, policy, template, vendors
+    select.py             routes each charge to its card's channel; decides whether to chase it
+    draft.py              fills the message template, defusing Slack mentions
+    log.py                the chase log: what a person has actually sent
+    report.py             writes JSON, chase-list CSV, drafts for review
+
+  context/
+    cards.yaml                card -> channel, cardholder, users (synthetic)
+    chase-policy.yaml         what's chased, what each message asks (placeholder)
+    message-template.md       the wording of every message; editable, see context/README.md
+    vendors.yaml              SHARED
+    transaction.schema.json   SHARED
+    output-schema.json, output-example.json
+
+  frames/chasing.md       how chasing works at OpenTeams, for a model (nothing reads it yet)
+  evaluation/fixtures/    the synthetic month, two 3-day exports, injection.csv
+  tests/                  29 tests, including a check that the shared copies match
+```
+
+**How a run flows, and where a person approves:**
+
+```
+exports (any number, any length, may overlap)
+  -> read, merge, drop duplicates
+  -> identify vendors
+  -> link pending charges to the posted charges that replaced them
+  -> route to the card's channel        (context/cards.yaml)
+  -> decide: draft / needs-routing / already-chased / skip
+  -> fill the template for each charge  (context/message-template.md)
+  -> output/chase_<from>_to_<to>.chase.json, .chase-list.csv, .drafts.md
+       |
+  a person reviews the drafts and sends the ones they want        <- approval
+       |
+  pixi run sent <the .chase.json>  records them in the chase log  <- approval
+```
+
+The Cog never sends anything. A charge counts as chased only after `pixi run sent`, so a draft
+nobody sent comes back next run, and one that was sent never does, even when its pending charge
+reappears as posted with a different amount.
+
+**Running it** (from `cogs/chase-list-builder-cog/`):
+
+```
+pixi run draft export.csv [more.csv ...] --coded <auto-coder .recurring.json>
+pixi run sent output/chase_<from>_to_<to>.chase.json
+pixi run demo
+pixi run test
+```
+
+---
+
 **What's shared, and how**
 
-Copied unchanged from the auto-coder into the chase-list builder:
+Copied unchanged between the two Cogs:
 
-- `src/cog_transactions/`
+- `src/cog_transactions/`: `shape.py`, `load.py`, `vendors.py`, and `combine.py` (merging
+  exports, linking pending charges to posted ones)
 - `context/transaction.schema.json`
 - `context/vendors.yaml`
+- `evaluation/fixtures/injection.csv`
 
-Change them in one Cog, then copy them to the other. Nothing checks that the copies match yet; that
-test comes when the chase-list builder is built.
+Change them in one Cog, then copy them to the other. The chase-list builder's tests fail if any
+shared file differs from the auto-coder's copy.
 
 ---
 
 **Not built yet**
 
-- Model step (left until last; where the model runs is undecided)
-- Pending -> posted matching across exports taken a few days apart
-- Accuracy against accounting's real codings (needs real data)
-- The whole chase-list builder
+- Model steps in both Cogs (left until last; where the model runs is undecided)
+- Chase-list builder: reading replies back into the transactions
+- Accuracy for both Cogs (needs real data)

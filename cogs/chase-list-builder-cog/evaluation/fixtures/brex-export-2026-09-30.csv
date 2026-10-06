@@ -1,0 +1,8 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+tx_0925a,px_0925a,posted,2026-09-25,2026-09-28,3308,Casey Kim,UBER *TRIP HELP.UBER.COM,27.80,USD,,,Travel,,false
+tx_0926a,,posted,2026-09-26,2026-09-29,7742,Riley Patel,TST* LUCKY BAR & GRILL,96.25,USD,,,Restaurants,,false
+px_0928a,,pending,2026-09-28,,4417,Jordan Lee,AMAZON WEB SERVICES,1500.00,USD,,,Software,,false
+px_0929a,,pending,2026-09-29,,5561,Priya Nair,SQ *PRINTWORKS,78.00,USD,,,Office,,false
+px_0929b,,pending,2026-09-29,,1290,Alex Rivera,MARRIOTT AUSTIN DT,1.00,USD,,,Lodging,,false
+px_0930a,,pending,2026-09-30,,8823,Morgan Chen,UBER *PENDING,18.40,USD,,,Travel,,false
+px_0930b,,pending,2026-09-30,,7742,Riley Patel,TST* LUCKY BAR & GRI,80.00,USD,,,Restaurants,,false

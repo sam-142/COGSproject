@@ -1,0 +1,26 @@
+# Which charges get chased, and what each message asks for.
+#
+# PLACEHOLDER POLICY. Accounting hasn't said yet what counts as "enough
+# information" for a charge; until they do, almost everything is chased.
+version: "0.0.1"
+status: placeholder
+
+# A refund is coded from the original charge, so there's nothing to ask.
+skip_refunds: true
+
+# With the auto-coder's JSON output passed in (--coded), skip charges it has
+# already proposed a coding for. Its needs-human charges are still chased.
+skip_coded_by_auto_coder: true
+
+# Skip a charge that already has a receipt attached and a non-empty memo.
+# Off until accounting confirms that a receipt plus a memo is enough. Only the
+# memo's presence is checked, never what it says.
+skip_when_receipt_and_memo: false
+
+# What each message asks for, in order. `key` names the line in the reply form,
+# so replies can be read back later. A question with `skip_if: receipt_attached`
+# is left out when the export says a receipt is already attached.
+ask_for:
+  - {key: purpose, question: "What was this for?"}
+  - {key: department, question: "Which department or team is it for?"}
+  - {key: receipt, question: "Can you attach the receipt or invoice?", skip_if: receipt_attached}

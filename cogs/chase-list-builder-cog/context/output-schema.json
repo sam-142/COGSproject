@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "output-schema.json",
+  "title": "Chase-list builder result",
+  "description": "The normative contract for `pixi run draft` output. Each transaction is in the shared shape, plus this Cog's inferred keys.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run",
+    "transactions",
+    "superseded",
+    "drafts",
+    "unmatched_descriptors",
+    "unparsed"
+  ],
+  "properties": {
+    "run": {
+      "type": "object",
+      "required": [
+        "cog",
+        "version",
+        "transaction_shape",
+        "at",
+        "mode",
+        "binding",
+        "inputs",
+        "coded",
+        "log",
+        "context",
+        "template",
+        "period",
+        "counts",
+        "warnings"
+      ],
+      "properties": {
+        "cog": {
+          "const": "chase-list-builder-cog"
+        },
+        "version": {
+          "type": "string"
+        },
+        "transaction_shape": {
+          "const": "0.1.0"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "mode": {
+          "enum": [
+            "strict",
+            "model"
+          ]
+        },
+        "binding": {
+          "description": "null in strict mode. Otherwise endpoint, model requested, model echoed, and where the binding was resolved from.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "endpoint",
+                "model_requested",
+                "model_echoed",
+                "source"
+              ]
+            }
+          ]
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "file",
+              "sha256"
+            ],
+            "properties": {
+              "file": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "coded": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "file",
+                "sha256"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            }
+          ]
+        },
+        "log": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "file",
+                "entries"
+              ]
+            }
+          ]
+        },
+        "context": {
+          "type": "object"
+        },
+        "template": {
+          "type": "string"
+        },
+        "period": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "from",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "to": {
+                  "type": "string",
+                  "format": "date"
+                }
+              }
+            }
+          ]
+        },
+        "counts": {
+          "type": "object"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "transactions": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "transaction.schema.json"
+          },
+          {
+            "properties": {
+              "inferred": {
+                "required": [
+                  "vendor",
+                  "route",
+                  "chase"
+                ],
+                "properties": {
+                  "route": {
+                    "type": "object",
+                    "required": [
+                      "source",
+                      "channel"
+                    ],
+                    "properties": {
+                      "source": {
+                        "enum": [
+                          "context",
+                          "none"
+                        ]
+                      },
+                      "channel": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  },
+                  "chase": {
+                    "type": "object",
+                    "required": [
+                      "source",
+                      "status",
+                      "reason",
+                      "ask_for"
+                    ],
+                    "properties": {
+                      "source": {
+                        "const": "rule"
+                      },
+                      "status": {
+                        "enum": [
+                          "draft",
+                          "needs-routing",
+                          "already-chased",
+                          "skip"
+                        ]
+                      },
+                      "ask_for": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "pending_match": {
+                    "type": "object",
+                    "required": [
+                      "source",
+                      "pending_transaction_id",
+                      "basis",
+                      "pending_amount"
+                    ],
+                    "properties": {
+                      "source": {
+                        "const": "match"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "superseded": {
+      "description": "Pending rows dropped because a posted row replaced them.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pending_id",
+          "replaced_by",
+          "how"
+        ],
+        "properties": {
+          "how": {
+            "enum": [
+              "export",
+              "match"
+            ]
+          }
+        }
+      }
+    },
+    "drafts": {
+      "description": "Messages for a person to review and send. Nothing in here has been sent.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "transaction_id",
+          "channel",
+          "needs_routing",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "transaction_id": {
+            "type": "string"
+          },
+          "channel": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "needs_routing": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "unmatched_descriptors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unparsed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "file",
+          "row",
+          "reason"
+        ]
+      }
+    }
+  }
+}

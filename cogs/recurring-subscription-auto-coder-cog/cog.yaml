@@ -20,7 +20,13 @@ requires: []
 # JSON output as an optional input, but that's a file, not a capability.
 provides: []
 
-# The ways to use this Cog. Each is a pixi task in pixi.toml.
+# Every interface below is a task in pixi.toml, run as `pixi run <task>`:
+#   cli   ->  pixi run code month.csv --history earlier.csv ...
+#   demo  ->  pixi run demo
+# The full command line lives in pixi.toml only, so it can't drift from here.
+runner: pixi
+
+# The ways to use this Cog.
 #
 # `check` and `use` exist as tasks but aren't listed: they set up and test a
 # model endpoint, and this Cog doesn't use a model yet. Listing them would claim

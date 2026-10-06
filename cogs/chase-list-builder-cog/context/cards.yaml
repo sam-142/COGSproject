@@ -1,0 +1,21 @@
+# Each card -> the channel its chases are posted to, and who uses it.
+#
+# SYNTHETIC PLACEHOLDER. The names and channels are made up. Replace with the
+# real cards, the people who use each one, and the channels once they exist.
+#
+# One channel per card, because each card is used by a known set of people:
+# posting there reaches whoever made the charge without guessing who it was.
+# A charge on a card missing from this file is drafted with no channel and
+# flagged `needs-routing` for a person to decide.
+version: "0.0.1"
+status: synthetic
+
+cards:
+  - {last4: "4417", cardholder: Jordan Lee, channel: "#card-4417", shared: true,
+     users: [Jordan Lee, Morgan Chen, Taylor Brooks]}
+  - {last4: "8823", cardholder: Morgan Chen, channel: "#card-8823", shared: true,
+     users: [Morgan Chen, Jordan Lee, Dana Wu]}
+  - {last4: "1290", cardholder: Alex Rivera, channel: "#card-1290", shared: false, users: [Alex Rivera]}
+  - {last4: "5561", cardholder: Priya Nair, channel: "#card-5561", shared: false, users: [Priya Nair]}
+  - {last4: "3308", cardholder: Casey Kim, channel: "#card-3308", shared: false, users: [Casey Kim]}
+  - {last4: "7742", cardholder: Riley Patel, channel: "#card-7742", shared: false, users: [Riley Patel]}

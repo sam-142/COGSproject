@@ -1,0 +1,40 @@
+[workspace]
+name = "chase-list-builder-cog"
+version = "0.0.1"
+description = "Finds card charges accounting needs details on and drafts a message for each, for a person to send."
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.11"
+# The files in context/ are YAML so accounting can read and edit them.
+pyyaml = ">=6"
+pytest = ">=8"
+# Tests check every output against context/output-schema.json.
+jsonschema = ">=4.18"
+
+[pypi-dependencies]
+# Installed editable, so `python -m chase_list` works from any directory.
+chase-list = { path = ".", editable = true }
+
+[tasks]
+# --- interfaces ---
+
+# Draft a message for each charge to chase. Takes any number of exports of any
+# length; they may overlap. Sends nothing.
+#   pixi run draft export1.csv [export2.csv ...] [--coded auto-coder.json] [--log chase-log.json]
+draft = "python -m chase_list draft"
+
+# Record which drafts a person actually sent, so they aren't drafted again.
+#   pixi run sent output/chase_....chase.json [--only draft-tx_0910c ...]
+sent = "python -m chase_list sent"
+
+# The same as draft, on the synthetic month shipped with this Cog. Ignores the
+# chase log, so it can be run repeatedly.
+demo = "python -m chase_list draft evaluation/fixtures/brex-transactions-2026-09.csv --no-log"
+
+# --- development ---
+test = "pytest -q tests"
+
+# NOTE: no [activation.env], deliberately. Activation variables override what you
+# export in your shell and silently pin every run to the wrong endpoint.

@@ -14,3 +14,7 @@ private/
 
 # Results written by `pixi run code`. They contain transaction rows.
 output/
+
+# The chase-list builder's record of what was sent. Holds card, merchant,
+# date and amount for each chased charge.
+chase-log.json
