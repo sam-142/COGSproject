@@ -27,7 +27,7 @@ chase-list builder unchanged.
 
 | Cog | Status |
 |---|---|
-| `recurring-subscription-auto-coder-cog` | working draft: runs end to end on the synthetic CSVs, no model step yet |
+| `recurring-subscription-auto-coder-cog` | a Cog (has its manifest): runs end to end on the synthetic CSVs, no model step yet |
 | `chase-list-builder-cog` | empty |
 
 ---
@@ -36,8 +36,8 @@ chase-list builder unchanged.
 
 ```
 recurring-subscription-auto-coder-cog/
-  COG.md              what the Cog does and doesn't do (draft: no manifest yet)
-  cog.yaml            empty; becomes the manifest
+  COG.md              what the Cog does and doesn't do
+  cog.yaml            manifest: requirements, interfaces, where context lives
   pixi.toml           environment + tasks (the Cog's commands)
   pyproject.toml      makes src/ installable
 
@@ -158,7 +158,6 @@ test comes when the chase-list builder is built.
 **Not built yet**
 
 - Model step (left until last; where the model runs is undecided)
-- Turning the draft into a Cog: the manifest in `cog.yaml`
 - Pending -> posted matching across exports taken a few days apart
 - Accuracy against accounting's real codings (needs real data)
 - The whole chase-list builder

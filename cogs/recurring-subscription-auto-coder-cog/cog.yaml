@@ -1,0 +1,52 @@
+# Manifest for recurring-subscription-auto-coder-cog.
+#
+# Format: openteams/cog-package [0.1], our own profile. CogSpec v0.1 never opens
+# this file; it only checks that COG.md names it and that it exists. Identity
+# (name, version, kind, publisher) stays in COG.md's frontmatter and is not
+# repeated here, so there is one place to change it. This file holds only what
+# the frontmatter can't: declarations with structure.
+
+# What this Cog needs from wherever it runs.
+#
+# Nothing yet. Every run is strict and calls no model. When the model step is
+# built (deliberately last), this becomes:
+#   requires: [model-endpoint/openai-compatible]
+requires: []
+
+# What this Cog offers other Cogs as a dependency.
+#
+# Nothing. The chase-list builder shares the transaction shape by copying
+# src/cog_transactions/, not by depending on this Cog. It may read this Cog's
+# JSON output as an optional input, but that's a file, not a capability.
+provides: []
+
+# The ways to use this Cog. Each is a pixi task in pixi.toml.
+#
+# `check` and `use` exist as tasks but aren't listed: they set up and test a
+# model endpoint, and this Cog doesn't use a model yet. Listing them would claim
+# something the Cog doesn't do. `test` is for development, not for users.
+interfaces:
+  - name: cli
+    kind: command
+    task: code
+    default: true
+  - name: demo
+    kind: command
+    task: demo
+
+# Files the code reads and the contract its output follows. Listed so a tool
+# (or a person) can find them without reading the source.
+context:
+  output_schema: context/output-schema.json
+  output_example: context/output-example.json
+  transaction_schema: context/transaction.schema.json
+  lookup:
+    - context/vendors.yaml
+    - context/known-recurring.yaml
+    - context/coding-rules.yaml
+    - context/chart-of-accounts.yaml
+
+# Markdown context for a model. Nothing reads these until the model step exists.
+frames:
+  - frames/recurring-subscriptions.md
+  - frames/coding-conventions.md

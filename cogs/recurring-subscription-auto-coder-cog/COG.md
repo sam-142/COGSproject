@@ -5,13 +5,15 @@ description: Finds the recurring charges in a month of OpenTeams Brex card trans
 kind: context
 version: "0.0.1"
 publisher: OpenTeams
+manifest: cog.yaml
+manifest_schema: openteams/cog-package [0.1]
 ---
 
 # Recurring subscription auto-coder
 
-> **Draft.** This file has no manifest yet, so it is a CogSpec draft, not a Cog. It becomes a Cog
-> when `manifest:` and `manifest_schema:` are added along with `cog.yaml`. Nothing below changes
-> when that happens.
+> **Early version.** The Cog runs end to end, but without a model step, and its lookup data in
+> `context/` is synthetic. See [Known limitations](#known-limitations). Its manifest is
+> [`cog.yaml`](cog.yaml).
 
 ## Purpose
 

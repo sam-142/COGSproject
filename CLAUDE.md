@@ -23,7 +23,7 @@ These were written in `recurring-subscription-auto-coder-cog` and are copied int
 `chase-list-builder-cog` unchanged. Change them in one Cog, then copy them to the other; never let
 the copies differ. Anything specific to one Cog stays out of `cog_transactions`.
 
-`recurring-subscription-auto-coder-cog` is a working draft (no model step yet).
+`recurring-subscription-auto-coder-cog` is a Cog with a manifest, but no model step yet.
 `chase-list-builder-cog` is still empty. `cogs/SPEC.md` is Trent Oliphant's CogSpec v0.1 — the Cogs reference it
 but are not bound by it (`cogs/README.md`). Where this file and the spec disagree, say so rather
 than silently picking one.
