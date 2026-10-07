@@ -26,7 +26,7 @@ auto-coder = { path = ".", editable = true }
 code = "python -m auto_coder code"
 
 # The same, on the synthetic fixtures shipped with this Cog.
-demo = "python -m auto_coder code evaluation/fixtures/brex-transactions-2026-09.csv --history evaluation/fixtures/brex-transactions-2026-07.csv evaluation/fixtures/brex-transactions-2026-08.csv"
+demo = "python -m auto_coder code evaluation/fixtures/baseline/brex-transactions-2026-09.csv --history evaluation/fixtures/baseline/brex-transactions-2026-07.csv evaluation/fixtures/baseline/brex-transactions-2026-08.csv"
 
 # Prove the model answers: a one-token completion, not a /models listing,
 # which gateways serve without checking the key or the model.

@@ -19,7 +19,10 @@ whole Cog for two consumers was not worth the cost. Instead the shared part is *
   linking pending charges to posted ones);
 - `context/transaction.schema.json`;
 - `context/vendors.yaml`;
-- `evaluation/fixtures/injection.csv`.
+- `evaluation/fixtures/injection/`.
+
+Test data lives in `sample-data/`, one folder per case; each Cog copies the folders it uses into
+`evaluation/fixtures/`, and its tests fail if a copy drifts from `sample-data/`.
 
 Change them in one Cog, then copy them to the other; never let the copies differ. The
 chase-list builder's tests fail if they do. Anything specific to one Cog stays out of `cog_transactions`.

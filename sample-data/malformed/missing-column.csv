@@ -1,0 +1,2 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+m_x,,posted,2026-09-01,2026-09-02,4417,Jordan Lee,GITHUB.COM,USD,,,Software,,false

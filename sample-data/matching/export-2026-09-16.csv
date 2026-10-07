@@ -1,0 +1,4 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+mt_tx_a,,posted,2026-09-10,2026-09-13,7742,Riley Patel,TST* OYSTER BAR & GRILL,58.00,USD,,,Restaurants,,false
+mt_tx_b,,posted,2026-09-11,2026-09-14,7742,Riley Patel,TST* OYSTER BAR & GRILL,138.00,USD,,,Restaurants,,false
+mt_tx_other_card,mt_px_other_card,posted,2026-09-10,2026-09-13,1290,Alex Rivera,TST* OYSTER BAR & GRILL,57.50,USD,,,Restaurants,,false

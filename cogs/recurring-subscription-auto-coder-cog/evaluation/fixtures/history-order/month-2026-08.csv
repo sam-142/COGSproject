@@ -1,0 +1,3 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+ho_08_github,,posted,2026-08-01,2026-08-02,4417,Jordan Lee,GITHUB.COM 4ZK8M,252.00,USD,,,Software,,false
+ho_08_canva,,posted,2026-08-16,2026-08-17,5561,Priya Nair,CANVA* I04512-98213,119.99,USD,,,Software,,false

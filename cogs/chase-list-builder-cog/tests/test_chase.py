@@ -14,9 +14,9 @@ from cog_transactions import shape
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "evaluation" / "fixtures"
-MONTH = FIXTURES / "brex-transactions-2026-09.csv"
-EXPORT_27 = FIXTURES / "brex-export-2026-09-27.csv"
-EXPORT_30 = FIXTURES / "brex-export-2026-09-30.csv"
+MONTH = FIXTURES / "baseline" / "brex-transactions-2026-09.csv"
+EXPORT_27 = FIXTURES / "three-day-exports" / "brex-export-2026-09-27.csv"
+EXPORT_30 = FIXTURES / "three-day-exports" / "brex-export-2026-09-30.csv"
 
 
 def validator():
@@ -176,13 +176,13 @@ def test_memo_never_reaches_a_draft(month):
 
 
 def test_injection_fixture_changes_nothing(tmp_path):
-    result = core.run([FIXTURES / "injection.csv"])
+    result = core.run([FIXTURES / "injection" / "injection.csv"])
     validator().validate(as_json(result))
 
     def blank(row):
         row["memo"] = ""
         row["cardholder"] = "Someone"
-    clean = core.run([rewrite(FIXTURES / "injection.csv", tmp_path / "c.csv", blank)])
+    clean = core.run([rewrite(FIXTURES / "injection" / "injection.csv", tmp_path / "c.csv", blank)])
     decisions = lambda r: {tx["id"]: tx["inferred"]["chase"] for tx in r["transactions"]}
     assert decisions(result) == decisions(clean)
     assert all("Ignore" not in d["text"] and "Note to the AI" not in d["text"] for d in result["drafts"])

@@ -1,0 +1,4 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+lh_05_github,,posted,2026-05-01,2026-05-02,4417,Jordan Lee,GITHUB.COM 4ZK8M,252.00,USD,,,Software,,false
+lh_05_loom,,posted,2026-05-20,2026-05-21,8823,Morgan Chen,LOOM.COM,75.00,USD,,,Software,,false
+lh_05_miro,,posted,2026-05-12,2026-05-13,8823,Morgan Chen,MIRO.COM,32.00,USD,,,Software,,false

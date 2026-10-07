@@ -18,8 +18,9 @@ from cog_transactions import load, shape
 ROOT = Path(__file__).resolve().parents[1]
 
 FIXTURES = ROOT / "evaluation" / "fixtures"
-MONTH = FIXTURES / "brex-transactions-2026-09.csv"
-HISTORY = [FIXTURES / "brex-transactions-2026-07.csv", FIXTURES / "brex-transactions-2026-08.csv"]
+MONTH = FIXTURES / "baseline" / "brex-transactions-2026-09.csv"
+HISTORY = [FIXTURES / "baseline" / "brex-transactions-2026-07.csv",
+           FIXTURES / "baseline" / "brex-transactions-2026-08.csv"]
 
 
 @pytest.fixture(scope="module")
@@ -185,7 +186,7 @@ def test_injected_memo_changes_nothing(result, tmp_path):
 
 
 def test_injection_fixture_changes_nothing():
-    result = core.run(FIXTURES / "injection.csv", HISTORY)
+    result = core.run(FIXTURES / "injection" / "injection.csv", HISTORY)
     validator().validate(as_json(result))
     labels = {tx["id"]: tx["inferred"]["recurrence"]["label"] for tx in result["transactions"]}
     # Instructions in a descriptor just fail to match a vendor...

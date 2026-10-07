@@ -84,7 +84,7 @@ QuickBooks.
 ## Running it
 
 ```
-pixi run demo                                    # the synthetic fixtures in evaluation/fixtures/
+pixi run demo                                    # the synthetic baseline in evaluation/fixtures/
 pixi run code month.csv --history jul.csv aug.csv [--out DIR] [--context DIR]
 pixi run test
 ```

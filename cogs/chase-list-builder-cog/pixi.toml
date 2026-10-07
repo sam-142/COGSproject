@@ -31,7 +31,7 @@ sent = "python -m chase_list sent"
 
 # The same as draft, on the synthetic month shipped with this Cog. Ignores the
 # chase log, so it can be run repeatedly.
-demo = "python -m chase_list draft evaluation/fixtures/brex-transactions-2026-09.csv --no-log"
+demo = "python -m chase_list draft evaluation/fixtures/baseline/brex-transactions-2026-09.csv --no-log"
 
 # --- development ---
 test = "pytest -q tests"

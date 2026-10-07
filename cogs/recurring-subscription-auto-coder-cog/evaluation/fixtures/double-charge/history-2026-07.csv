@@ -1,0 +1,2 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+dc_07_figma,,posted,2026-07-02,2026-07-03,8823,Morgan Chen,FIGMA MONTHLY RENEWAL,135.00,USD,,,Software,,false

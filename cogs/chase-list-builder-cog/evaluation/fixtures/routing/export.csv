@@ -1,0 +1,4 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+rt_known,,posted,2026-09-10,2026-09-11,1290,Alex Rivera,DELTA AIR 0062384719263,684.40,USD,,,Travel,,false
+rt_unknown_card,,posted,2026-09-11,2026-09-12,9999,Taylor Brooks,UBER *TRIP HELP.UBER.COM,31.14,USD,,,Travel,,false
+rt_no_card,,posted,2026-09-12,2026-09-13,,,SQ *CORNER DELI,14.20,USD,,,Restaurants,,false

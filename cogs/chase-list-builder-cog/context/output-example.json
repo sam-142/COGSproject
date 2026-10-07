@@ -3,7 +3,7 @@
     "cog": "chase-list-builder-cog",
     "version": "0.0.1",
     "transaction_shape": "0.1.0",
-    "at": "2026-10-06T12:00:00+00:00",
+    "at": "2026-10-07T12:00:00+00:00",
     "mode": "strict",
     "binding": null,
     "inputs": [
@@ -234,21 +234,21 @@
       "transaction_id": "tx_0924a",
       "channel": "#card-1290",
       "needs_routing": false,
-      "text": "A charge on card ending 1290 needs a few details for accounting:\n\n> *SLACK T03AB9XYZ*, 142.50 USD on 2026-09-24\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0924a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
+      "text": "A charge on card ending 1290 needs a few details for accounting:\n\n> SLACK T03AB9XYZ, 142.50 USD on 2026-09-24\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0924a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
     },
     {
       "id": "draft-tx_0926a",
       "transaction_id": "tx_0926a",
       "channel": "#card-7742",
       "needs_routing": false,
-      "text": "A charge on card ending 7742 needs a few details for accounting:\n\n> *TST* LUCKY BAR & GRILL*, 96.25 USD on 2026-09-26\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0926a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
+      "text": "A charge on card ending 7742 needs a few details for accounting:\n\n> TST* LUCKY BAR & GRILL, 96.25 USD on 2026-09-26\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0926a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
     },
     {
       "id": "draft-px_0928a",
       "transaction_id": "px_0928a",
       "channel": "#card-4417",
       "needs_routing": false,
-      "text": "A charge on card ending 4417 needs a few details for accounting:\n\n> *AMAZON WEB SERVICES*, 1,500.00 USD on 2026-09-28 (pending: the amount may change when it settles)\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: px_0928a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
+      "text": "A charge on card ending 4417 needs a few details for accounting:\n\n> AMAZON WEB SERVICES, 1,500.00 USD on 2026-09-28 (pending: the amount may change when it settles)\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: px_0928a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
     }
   ],
   "unmatched_descriptors": [

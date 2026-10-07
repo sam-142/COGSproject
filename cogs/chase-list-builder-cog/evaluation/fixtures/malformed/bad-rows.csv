@@ -1,0 +1,8 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+m_ok,,posted,2026-09-01,2026-09-02,4417,Jordan Lee,GITHUB.COM 4ZK8M,252.00,USD,,,Software,,false
+m_refund,,posted,2026-09-02,2026-09-03,7742,Riley Patel,PYPL *EVENTBRITE,-45.00,USD,,,Conferences,,false
+m_no_amount,,posted,2026-09-03,2026-09-04,4417,Jordan Lee,VERCEL INC.,,USD,,,Software,,false
+m_bad_date,,posted,2026-13-01,2026-13-02,4417,Jordan Lee,SENTRY,80.00,USD,,,Software,,false
+m_bad_status,,settled,2026-09-05,2026-09-06,4417,Jordan Lee,DATADOG INC,611.42,USD,,,Software,,false
+m_word_amount,,posted,2026-09-06,2026-09-07,8823,Morgan Chen,NOTION LABS INC,twelve,USD,,,Software,,false
+m_money_format,,posted,2026-09-07,2026-09-08,5561,Priya Nair,HUBSPOT INC,"$1,234.56",USD,,,Software,,false

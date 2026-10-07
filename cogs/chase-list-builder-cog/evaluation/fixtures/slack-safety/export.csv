@@ -1,0 +1,5 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+ss_here,,posted,2026-09-10,2026-09-11,4417,Jordan Lee,@here PROMO SHOP,19.99,USD,,,Office,,false
+ss_channel,,posted,2026-09-11,2026-09-12,4417,Jordan Lee,<!channel> STORE,29.99,USD,,,Office,,false
+ss_backticks,,posted,2026-09-12,2026-09-13,8823,Morgan Chen,```TOOLS``` INC,9.99,USD,,,Office,,false
+ss_holder,,posted,2026-09-13,2026-09-14,1290,@everyone,SQ *CORNER DELI,14.20,USD,,,Restaurants,,false

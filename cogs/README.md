@@ -68,7 +68,8 @@ recurring-subscription-auto-coder-cog/
     recurring-subscriptions.md
     coding-conventions.md
 
-  evaluation/fixtures/   synthetic July-September 2026 CSVs + injection.csv
+  evaluation/fixtures/   case folders copied from sample-data/: baseline, injection, malformed,
+                         subscription-changes, long-history, double-charge, history-order
   tests/                 24 tests
 ```
 
@@ -169,7 +170,8 @@ chase-list-builder-cog/
     output-schema.json, output-example.json
 
   frames/chasing.md       how chasing works at OpenTeams, for a model (nothing reads it yet)
-  evaluation/fixtures/    the synthetic month, two 3-day exports, injection.csv
+  evaluation/fixtures/    case folders copied from sample-data/: baseline, three-day-exports,
+                          injection, malformed, routing, receipts, matching, slack-safety
   tests/                  29 tests, including a check that the shared copies match
 ```
 
@@ -213,7 +215,7 @@ Copied unchanged between the two Cogs:
   exports, linking pending charges to posted ones)
 - `context/transaction.schema.json`
 - `context/vendors.yaml`
-- `evaluation/fixtures/injection.csv`
+- `evaluation/fixtures/injection/`
 
 Change them in one Cog, then copy them to the other. The chase-list builder's tests fail if any
 shared file differs from the auto-coder's copy.

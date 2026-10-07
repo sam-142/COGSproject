@@ -1,0 +1,5 @@
+transaction_id,pending_transaction_id,status,transaction_date,posted_date,card_last4,cardholder,merchant_descriptor,amount,currency,original_amount,original_currency,brex_category,memo,receipt_attached
+rc_none,,posted,2026-09-10,2026-09-11,1290,Alex Rivera,DELTA AIR 0062384719263,684.40,USD,,,Travel,,false
+rc_receipt_only,,posted,2026-09-11,2026-09-12,1290,Alex Rivera,THE HOXTON SHOREDITCH,512.36,USD,,,Lodging,,true
+rc_receipt_and_memo,,posted,2026-09-12,2026-09-13,5561,Priya Nair,VISTAPRINT,214.58,USD,,,Office,Booth banners for the October summit,true
+rc_memo_only,,posted,2026-09-13,2026-09-14,5561,Priya Nair,EXHIBITGROUP BOOTH SVC,2350.00,USD,,,Advertising,Summit booth,false
