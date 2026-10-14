@@ -4,10 +4,10 @@ Files the code reads directly. Edit them; nothing needs rebuilding.
 
 | File | What it controls |
 |---|---|
-| `cards.yaml` | each card's channel and users (synthetic) |
+| `cards.yaml` | each card's channel and users. Empty: real cards go in an override folder (`--context`) |
 | `chase-policy.yaml` | which charges are chased, and what each message asks for |
 | `message-template.md` | the wording of every drafted message |
-| `vendors.yaml` | descriptor patterns → vendor. **Shared** with the auto-coder; keep the copies identical |
+| `vendors.yaml` | vendor list. Empty by default; **shared** with the auto-coder; keep the copies identical |
 | `transaction.schema.json` | the transaction shape. **Shared** |
 | `output-schema.json`, `output-example.json` | this Cog's output contract, and a short example of it |
 
@@ -19,12 +19,13 @@ order, as often as you like:
 | Placeholder | Becomes |
 |---|---|
 | `{card_last4}` | `4417` |
-| `{cardholder}` | name the card is under |
+| `{cardholder}` | Brex `User` |
 | `{channel}` | `#card-4417` |
-| `{merchant}` | the descriptor from the export, e.g. `DELTA AIR 0062384719263` |
+| `{merchant}` | Brex's cleaned-up merchant name, e.g. `Delta Air Lines` |
+| `{descriptor}` | the raw statement descriptor, e.g. `DELTA AIR 0062384719263` |
 | `{vendor}` | the vendor id if recognised, else the descriptor |
 | `{amount}`, `{currency}` | `684.40`, `USD` |
-| `{original_amount}` | ` (originally 398.00 GBP)` for foreign charges, otherwise empty |
+| `{original_amount}` | ` (originally 398.00 GBP)` when the original currency differs, otherwise empty |
 | `{date}` | `2026-09-10` |
 | `{status}` | `posted` or `pending` |
 | `{status_note}` | for pending charges, a note that the amount may still change; otherwise empty |

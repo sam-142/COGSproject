@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "transaction.schema.json",
-  "title": "Transaction (shared shape 0.1.0)",
+  "title": "Transaction (shared shape 0.2.0)",
   "description": "SHARED WITH chase-list-builder-cog; keep both copies identical. A field appears in parsed or inferred, never both.",
   "type": "object",
   "additionalProperties": false,
@@ -34,107 +34,179 @@
       }
     },
     "parsed": {
-      "description": "Values read straight from the export. Nothing else.",
+      "description": "Values read from the Brex export, and only those. Every other export column is dropped on reading.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "transaction_id",
-        "pending_transaction_id",
         "status",
         "transaction_date",
         "posted_date",
         "card_last4",
         "cardholder",
+        "merchant_name",
         "merchant_descriptor",
         "amount",
         "currency",
         "original_amount",
         "original_currency",
+        "type",
+        "reference_id",
         "brex_category",
         "memo",
-        "receipt_attached"
+        "receipt_attached",
+        "spender_department",
+        "brex_account",
+        "brex_class",
+        "brex_department",
+        "brex_vendor"
       ],
       "properties": {
         "transaction_id": {
-          "type": "string"
-        },
-        "pending_transaction_id": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string",
+          "description": "Brex `Id`"
         },
         "status": {
           "enum": [
             "pending",
-            "posted"
-          ]
+            "posted",
+            "declined"
+          ],
+          "description": "from Brex `Payment Status`: Cleared -> posted, Pending -> pending, Declined -> declined"
         },
         "transaction_date": {
           "type": "string",
-          "format": "date"
+          "format": "date",
+          "description": "Brex `Transaction Date` (MM/DD/YYYY in the export)"
         },
         "posted_date": {
           "type": [
             "string",
             "null"
           ],
-          "format": "date"
+          "format": "date",
+          "description": "Brex `Posted Date`; empty unless posted"
         },
         "card_last4": {
           "type": [
             "string",
             "null"
           ],
-          "pattern": "^[0-9]{4}$"
+          "pattern": "^[0-9]{4}$",
+          "description": "Brex `Last 4`"
         },
         "cardholder": {
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "Brex `User`"
+        },
+        "merchant_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Brex `Merchant Name` (Brex's cleaned-up name)"
         },
         "merchant_descriptor": {
-          "type": "string"
+          "type": "string",
+          "description": "Brex `Statement Descriptor` (raw card-network text)"
         },
         "amount": {
-          "type": "number"
+          "type": "number",
+          "description": "Brex `Amount`"
         },
         "currency": {
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "Brex `Currency`"
         },
         "original_amount": {
           "type": [
             "number",
             "null"
-          ]
+          ],
+          "description": "Brex `Original Amount`"
         },
         "original_currency": {
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "Brex `Original Currency`"
+        },
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Brex `Type`"
+        },
+        "reference_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Brex `Card Transaction Reference ID`"
         },
         "brex_category": {
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "Brex `Brex Category`"
         },
         "memo": {
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "Brex `Memo`"
         },
         "receipt_attached": {
           "type": [
             "boolean",
             "null"
-          ]
+          ],
+          "description": "whether Brex `Receipt URL` is filled; the link itself is never kept. null if the column is absent"
+        },
+        "spender_department": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Brex `Department` (the spender's team in Brex)"
+        },
+        "brex_account": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Brex `Integration Debit Line Category Fully Qualified Name` (the expense account as QuickBooks names it)"
+        },
+        "brex_class": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Brex `Integration Class`"
+        },
+        "brex_department": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Brex `Integration Department`"
+        },
+        "brex_vendor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Brex `Integration Vendor`"
         }
       }
     },
@@ -145,20 +217,27 @@
         "not": {
           "enum": [
             "transaction_id",
-            "pending_transaction_id",
             "status",
             "transaction_date",
             "posted_date",
             "card_last4",
             "cardholder",
+            "merchant_name",
             "merchant_descriptor",
             "amount",
             "currency",
             "original_amount",
             "original_currency",
+            "type",
+            "reference_id",
             "brex_category",
             "memo",
-            "receipt_attached"
+            "receipt_attached",
+            "spender_department",
+            "brex_account",
+            "brex_class",
+            "brex_department",
+            "brex_vendor"
           ]
         }
       },
@@ -174,6 +253,7 @@
               "history",
               "rule",
               "match",
+              "export",
               "model",
               "none"
             ]
@@ -206,6 +286,13 @@
             },
             "reason": {
               "type": "string"
+            },
+            "billing": {
+              "enum": [
+                "usage",
+                "fixed",
+                null
+              ]
             }
           }
         }

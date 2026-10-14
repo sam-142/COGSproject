@@ -73,7 +73,7 @@ def test_output_example_matches_the_schema():
 
 def test_every_row_appears_once_and_gets_a_decision(month):
     with MONTH.open() as f:
-        ids = sorted(r["transaction_id"] for r in csv.DictReader(f))
+        ids = sorted(r["Id"] for r in csv.DictReader(f))
     assert sorted(tx["id"] for tx in month["transactions"]) == ids
     assert all("chase" in tx["inferred"] for tx in month["transactions"])
 
@@ -109,13 +109,16 @@ def test_auto_coder_output_skips_what_it_coded(tmp_path):
     coded.write_text(json.dumps({
         "run": {"cog": "recurring-subscription-auto-coder-cog"},
         "transactions": [
-            {"id": "tx_0901a", "inferred": {"coding": {"status": "proposed"}}},
-            {"id": "tx_0918a", "inferred": {"coding": {"status": "needs-human"}}},
+            {"id": "tx_0901a", "inferred": {"coding": {"status": "ready", "review": None}}},
+            {"id": "tx_0918a", "inferred": {"coding": {"status": "ready", "review": "new: not seen before"}}},
+            {"id": "tx_0912a", "inferred": {"coding": {"status": "not-included"}}},
         ],
     }))
     result = core.run([MONTH], coded_path=coded)
     assert chase(result, "tx_0901a")["status"] == "skip"
-    assert chase(result, "tx_0918a")["reason"] == "the auto-coder couldn't code it"
+    # Entered but flagged: the cardholder may know what the new vendor is.
+    assert chase(result, "tx_0918a")["reason"] == "the auto-coder flagged it: new: not seen before"
+    assert chase(result, "tx_0912a")["status"] == "draft"         # not a subscription: chase it
 
 
 def test_other_json_is_refused_as_auto_coder_output(tmp_path):
@@ -133,8 +136,8 @@ def test_routed_to_the_cards_channel(month):
 
 def test_unknown_card_needs_routing(tmp_path):
     def change(row):
-        if row["transaction_id"] == "tx_0910c":
-            row["card_last4"] = "9999"
+        if row["Id"] == "tx_0910c":
+            row["Last 4"] = "9999"
     result = core.run([rewrite(MONTH, tmp_path / "m.csv", change)])
     assert chase(result, "tx_0910c")["status"] == "needs-routing"
     d = next(d for d in result["drafts"] if d["transaction_id"] == "tx_0910c")
@@ -159,8 +162,8 @@ def test_unknown_placeholder_fails_at_load(tmp_path):
 
 def test_export_text_cant_ping_a_channel(tmp_path):
     def change(row):
-        if row["transaction_id"] == "tx_0910c":
-            row["merchant_descriptor"] = "@channel <!here> SHOP"
+        if row["Id"] == "tx_0910c":
+            row["Statement Descriptor"] = row["Merchant Name"] = "@channel <!here> SHOP"
     result = core.run([rewrite(MONTH, tmp_path / "m.csv", change)])
     text = draft_text(result, "tx_0910c")
     assert "@" not in text and "<!" not in text
@@ -180,8 +183,8 @@ def test_injection_fixture_changes_nothing(tmp_path):
     validator().validate(as_json(result))
 
     def blank(row):
-        row["memo"] = ""
-        row["cardholder"] = "Someone"
+        row["Memo"] = ""
+        row["User"] = "Someone"
     clean = core.run([rewrite(FIXTURES / "injection" / "injection.csv", tmp_path / "c.csv", blank)])
     decisions = lambda r: {tx["id"]: tx["inferred"]["chase"] for tx in r["transactions"]}
     assert decisions(result) == decisions(clean)
@@ -200,7 +203,8 @@ def test_pending_replaced_by_posted_across_exports():
     result = core.run([EXPORT_27, EXPORT_30])
     ids = {tx["id"] for tx in result["transactions"]}
     assert "px_0925a" not in ids and "px_0926z" not in ids
-    assert {(s["pending_id"], s["how"]) for s in result["superseded"]} == {("px_0925a", "export"), ("px_0926z", "match")}
+    # Brex has no link column, so both are matched on card, merchant and date.
+    assert {(s["pending_id"], s["how"]) for s in result["superseded"]} == {("px_0925a", "match"), ("px_0926z", "match")}
     assert by_id(result, "tx_0926a")["inferred"]["pending_match"]["source"] == "match"
     assert any("tx_0926a" in w for w in result["run"]["warnings"])
 

@@ -15,7 +15,7 @@ after that waits on accounting.
 | Runs end to end | yes, on synthetic data | yes, on synthetic data |
 | `COG.md` + manifest | yes | yes |
 | Test cases | 61 passing, 3 known gaps (`xfail`) | 64 passing |
-| Context files | **invented**: vendors, coding rules, chart of accounts, known recurring | **invented**: vendors, cards and channels; **placeholder** policy |
+| Context files | **empty defaults**; real ones via `--context`. Invented ones are test data | **empty defaults** (vendors, cards); **placeholder** policy |
 | Evaluation | not built | not built |
 | Model step | not built, deliberately last | not built, deliberately last |
 
@@ -25,7 +25,7 @@ after that waits on accounting.
    answers.
 2. **Commit** the test-case work.
 3. **Fix the three auto-coder gaps** the test cases exposed (Phase 2).
-4. **Stop the auto-coder proposing invented codings** (Phase 2).
+4. ~~Stop the auto-coder proposing invented codings~~ (done: defaults are empty).
 5. **Read replies back in** (Phase 4).
 6. **Evaluation scripts** for both Cogs, against synthetic answer keys.
 7. **Write the real-data runbook** (Phase 5).
@@ -86,8 +86,9 @@ accuracy is reported (rates only, never rows).
 - [x] Lookup data in `context/` (YAML); org context for a model in `frames/` (Markdown).
 - [x] Recurring charges spotted with no model: compared with earlier months, ±10% tolerance,
   labelled `recurring`, `likely-recurring`, `amount-changed`, `new` or `one-off`.
-- [x] Codings proposed only for posted charges labelled `recurring` that have a rule; everything
-  else left for a person, with the reason.
+- [x] A QuickBooks entry (DATE, REF NO., TYPE, PAYEE, ACCOUNT, MEMO, CLASS, DEPARTMENT, CHARGE) for
+  every posted subscription charge; ACCOUNT from the Brex charge unless a coding rule overrides it;
+  blank fields don't block an entry.
 - [x] Review CSV for accounting, full JSON output, expected-but-missing list.
 
 **Before real data:**
@@ -96,7 +97,7 @@ accuracy is reported (rates only, never rows).
   - a subscription cancelled months ago is reported missing forever (`long-history`);
   - two identical charges on the same day are both coded (`double-charge`);
   - a later month passed as history counts as evidence (`history-order`).
-- [ ] **Stop proposing invented codings.** Empty `context/coding-rules.yaml`, so recurring charges
+- [x] **Stop proposing invented codings.** Empty `context/coding-rules.yaml`, so recurring charges
   show `needs-human` until real rules exist. Keep the coding logic tested with a test-only rules
   file.
 - [ ] **Evaluation script** (`pixi run eval`), built against a synthetic answer key. It reports:
@@ -166,9 +167,10 @@ Same steps for both Cogs. Write them up as a checklist (`REAL-DATA.md`) before t
 day one is quick.
 
 - [ ] Real files go in `private/`, which is gitignored. Never in `sample-data/` or a Cog's fixtures.
-- [ ] Match the real export: column names and formats (dates, amount signs, `$` and thousands
-  separators) in `cog_transactions/load.py`. Copy the shared files to the other Cog.
-- [ ] Reshape the synthetic test cases to the real format: same columns, still fake data.
+- [x] Match the real export: the reader reads Brex's 70-column layout, keeps 22 columns, reads
+  `MM/DD/YYYY` dates and plain amounts, and maps `Payment Status`. Copied to both Cogs.
+- [x] Rebuild the synthetic test cases in the real layout, with a test that dropped columns never
+  reach an output.
 - [ ] Rebuild the context files from real data:
   - vendor patterns from real descriptors;
   - coding rules and the chart of accounts from the QuickBooks export;

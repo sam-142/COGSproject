@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yaml
 
-from cog_transactions.vendors import compile_vendors
+from cog_transactions.vendors import DEFAULT_SUBSCRIPTION_CATEGORIES, compile_vendors
 
 COG_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DIR = COG_ROOT / "context"
@@ -17,7 +17,7 @@ TEMPLATE_NAME = "message-template.md"
 
 # What a template may use. See context/README.md.
 PLACEHOLDERS = {
-    "card_last4", "cardholder", "channel", "merchant", "vendor", "amount", "currency",
+    "card_last4", "cardholder", "channel", "merchant", "descriptor", "vendor", "amount", "currency",
     "original_amount", "date", "status", "status_note", "questions", "reply_form",
     "transaction_id",
 }
@@ -27,8 +27,26 @@ class ContextError(ValueError):
     pass
 
 
-def _yaml(directory, name):
-    path = Path(directory) / f"{name}.yaml"
+def check_override_dir(override_dir, names):
+    """Fail loudly instead of silently falling back to the defaults."""
+    if override_dir is None:
+        return
+    d = Path(override_dir)
+    if d.is_file():
+        raise ContextError(f"--context takes a folder, not a file: use --context {d.parent}")
+    if not d.is_dir():
+        raise ContextError(f"--context folder not found: {d}")
+    if not any((d / n).exists() for n in names):
+        raise ContextError(f"--context folder {d} has none of: {', '.join(names)}")
+
+
+def _pick(override_dir, filename):
+    """The override folder's copy of a file if it has one, else this Cog's default."""
+    own = Path(override_dir) / filename if override_dir else None
+    return own if own and own.exists() else DEFAULT_DIR / filename
+
+
+def _yaml(path):
     if not path.exists():
         raise ContextError(f"missing context file {path}")
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -50,8 +68,13 @@ def load_template(path):
     return text
 
 
-def load(directory=DEFAULT_DIR, template_path=None):
-    raw = {name: _yaml(directory, name) for name in ("vendors", "cards", "chase-policy")}
+def load(override_dir=None, template_path=None):
+    """Read the context files. A file in `override_dir` replaces this Cog's
+    default, file by file, so real cards, policy, template or vendor list can
+    live outside the repo, in private/. `template_path` wins over both."""
+    check_override_dir(override_dir, ["vendors.yaml", "cards.yaml", "chase-policy.yaml", TEMPLATE_NAME])
+    sources = {name: _pick(override_dir, f"{name}.yaml") for name in ("vendors", "cards", "chase-policy")}
+    raw = {name: _yaml(path) for name, path in sources.items()}
 
     try:
         vendors = compile_vendors(raw["vendors"].get("vendors", []))
@@ -74,10 +97,12 @@ def load(directory=DEFAULT_DIR, template_path=None):
         if item.get("skip_if") not in (None, "receipt_attached"):
             raise ContextError(f"chase-policy: unknown skip_if {item['skip_if']!r}")
 
-    template_path = Path(template_path) if template_path else Path(directory) / TEMPLATE_NAME
+    template_path = Path(template_path) if template_path else _pick(override_dir, TEMPLATE_NAME)
     return {
         "vendors": vendors,
         "cards": cards,
+        "subscription_categories": tuple(raw["vendors"].get("brex_subscription_categories")
+                                         or DEFAULT_SUBSCRIPTION_CATEGORIES),
         "policy": {
             "skip_refunds": bool(policy.get("skip_refunds", True)),
             "skip_coded_by_auto_coder": bool(policy.get("skip_coded_by_auto_coder", True)),
@@ -87,6 +112,7 @@ def load(directory=DEFAULT_DIR, template_path=None):
         "template": load_template(template_path),
         "template_file": template_path.name,
         "versions": {name: {"version": str(raw[name].get("version")),
-                            "status": raw[name].get("status", "unspecified")}
+                            "status": raw[name].get("status", "unspecified"),
+                            "from": "override" if sources[name].parent != DEFAULT_DIR else "default"}
                      for name in raw},
     }

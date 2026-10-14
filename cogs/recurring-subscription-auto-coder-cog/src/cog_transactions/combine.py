@@ -5,12 +5,10 @@ Exports can overlap, and a charge that was pending in one export is posted in
 the next, sometimes with a different amount and descriptor. Without this step
 the same purchase would be counted, or chased, twice.
 
-Two kinds of link:
-    from the export   a posted row whose `pending_transaction_id` names the
-                      pending row. Read, not inferred, so nothing is added.
-    matched           no id link, so matched on card, merchant and date. Marked
-                      as inferred (`inferred.pending_match`, source `match`),
-                      because it is a judgement, not something the export said.
+Brex's export has no column linking a posted charge to the pending charge it
+replaced, so every link is a match on card, merchant and date. It is marked as
+inferred (`inferred.pending_match`, source `match`), because it is a judgement,
+not something the export said.
 
 Run vendors.identify() first: matching compares vendor ids.
 """
@@ -38,11 +36,13 @@ def dedupe(batches):
 
 
 def _merchant_key(record):
-    """Vendor id if known, else the start of the descriptor, letters and digits only.
-    Descriptors get cut short differently when pending: `TST* LUCKY BAR & GRI`."""
+    """Vendor id if known, else the start of the merchant name (or descriptor),
+    letters and digits only. Names get cut short differently when pending:
+    `TST* LUCKY BAR & GRI`."""
     if record.get("vendor"):
         return record["vendor"]
-    return re.sub(r"[^A-Z0-9]", "", (record.get("descriptor") or "").upper())[:10]
+    name = record.get("merchant_name") or record.get("descriptor") or ""
+    return re.sub(r"[^A-Z0-9]", "", name.upper())[:10]
 
 
 def summary(tx):
@@ -53,6 +53,7 @@ def summary(tx):
         "transaction_id": tx["id"],
         "card_last4": p["card_last4"],
         "vendor": (tx["inferred"].get("vendor") or {}).get("id"),
+        "merchant_name": p["merchant_name"],
         "descriptor": p["merchant_descriptor"],
         "transaction_date": p["transaction_date"],
         "amount": p["amount"],
@@ -88,19 +89,13 @@ def record_match(posted_tx, pend):
 
 def link(transactions):
     """Drop pending rows that a posted row in the same set replaces.
-    Returns (remaining transactions, superseded: [{pending_id, replaced_by, how}])."""
+    Returns (remaining transactions, superseded: [{pending_id, replaced_by, how}]);
+    `how` is always "match" for Brex exports."""
     pending = {tx["id"]: tx for tx in transactions if tx["parsed"]["status"] == "pending"}
     superseded = []
 
-    posted = [tx for tx in transactions if tx["parsed"]["status"] == "posted"]
-    for tx in posted:
-        pid = tx["parsed"]["pending_transaction_id"]
-        if pid and pid in pending:
-            superseded.append({"pending_id": pid, "replaced_by": tx["id"], "how": "export"})
-            del pending[pid]
-
-    for tx in posted:
-        if tx["parsed"]["pending_transaction_id"]:
+    for tx in transactions:
+        if tx["parsed"]["status"] != "posted":
             continue
         pend = match_pending([summary(p) for p in pending.values()], tx)
         if pend:

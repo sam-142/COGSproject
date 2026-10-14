@@ -57,7 +57,7 @@ def coding(result, tx_id):
 
 def test_every_input_row_appears_once(result):
     with MONTH.open() as f:
-        ids = [r["transaction_id"] for r in csv.DictReader(f)]
+        ids = [r["Id"] for r in csv.DictReader(f)]
     assert sorted(tx["id"] for tx in result["transactions"]) == sorted(ids)
     assert result["unparsed"] == []
 
@@ -92,13 +92,13 @@ def test_parsed_and_inferred_never_share_a_field(result):
 def test_no_pending_charge_is_coded(result):
     for tx in result["transactions"]:
         if tx["parsed"]["status"] == "pending":
-            assert tx["inferred"]["coding"]["status"] in ("waiting-for-post", "not-coded"), tx["id"]
+            assert tx["inferred"]["coding"]["status"] in ("waiting-for-post", "not-included"), tx["id"]
 
 
-def test_only_recurring_charges_get_a_proposed_coding(result):
+def test_only_posted_subscriptions_get_an_entry(result):
     for tx in result["transactions"]:
-        if tx["inferred"]["coding"]["status"] == "proposed":
-            assert tx["inferred"]["recurrence"]["label"] == "recurring", tx["id"]
+        if tx["inferred"]["coding"]["status"] == "ready":
+            assert tx["inferred"]["recurrence"]["label"] != "one-off", tx["id"]
             assert tx["parsed"]["status"] == "posted", tx["id"]
 
 
@@ -111,7 +111,7 @@ def test_run_record_is_strict_with_no_binding(result):
 
 def test_usage_billed_vendor_within_tolerance_is_recurring(result):
     assert label(result, "tx_0905a") == "recurring"          # Datadog drifts month to month
-    assert coding(result, "tx_0905a")["account"] == "6120"
+    assert coding(result, "tx_0905a")["entry"]["ACCOUNT"] == "6120"
 
 
 def test_two_aws_descriptors_are_one_vendor_and_two_streams(result):
@@ -123,22 +123,33 @@ def test_two_aws_descriptors_are_one_vendor_and_two_streams(result):
 def test_slack_seat_addition_is_amount_changed(result):
     assert label(result, "tx_0902a") == "recurring"          # the normal charge
     assert label(result, "tx_0924a") == "amount-changed"     # the mid-month add-on
-    assert coding(result, "tx_0924a")["status"] == "needs-human"
+    assert coding(result, "tx_0924a")["status"] == "ready"           # entered...
+    assert coding(result, "tx_0924a")["review"].startswith("amount-changed:")   # ...and flagged
 
 
 def test_first_seen_subscription_is_new(result):
     assert label(result, "tx_0918a") == "new"                # Grafana
-    assert coding(result, "tx_0918a")["status"] == "needs-human"
+    assert coding(result, "tx_0918a")["status"] == "ready"
+    assert coding(result, "tx_0918a")["review"].startswith("new:")
 
 
 def test_one_earlier_month_is_likely_recurring(result):
     assert label(result, "tx_0916b") == "likely-recurring"   # Canva, from August
 
 
-def test_recurring_vendor_with_no_rule_needs_a_human(result):
-    assert label(result, "tx_0912a") == "recurring"          # Postman
-    assert coding(result, "tx_0912a") == {"status": "needs-human", "source": "none",
-                                          "reason": "no coding rule for this vendor"}
+def test_no_coding_rule_doesnt_block_the_entry(result):
+    # Postman has no coding rule: ACCOUNT comes from the Brex charge, and the
+    # fields nothing supplies are just blank.
+    c = coding(result, "tx_0912a")
+    assert c["status"] == "ready" and c["review"] is None
+    # Brex's fully qualified account name, as QuickBooks names it.
+    assert (c["entry"]["ACCOUNT"], c["from"]["ACCOUNT"]) == ("Expenses:6110 Software Subscriptions", "export")
+    assert c["blank"] == ["MEMO", "CLASS", "DEPARTMENT"]
+
+
+def test_review_rate_counts_flagged_entries(result):
+    assert result["run"]["counts"]["coding"] == {"not-included": 18, "ready": 32, "waiting-for-post": 1}
+    assert result["run"]["abstention_rate"] == round(3 / 32, 3)      # new, likely, amount-changed
 
 
 def test_missing_subscription_is_reported(result):
@@ -153,13 +164,15 @@ def test_pending_charge_on_known_vendor_waits_for_post(result):
 def test_travel_refunds_and_unknown_vendors_are_one_off(result):
     for tx_id in ("tx_0910c", "tx_0918b", "tx_0922a", "tx_0926a"):
         assert label(result, tx_id) == "one-off", tx_id
-        assert coding(result, tx_id)["status"] == "not-coded", tx_id
+        assert coding(result, tx_id)["status"] == "not-included", tx_id
 
 
 def test_known_recurring_list_works_without_history():
     result = core.run(MONTH, [])
     assert label(result, "tx_0901a") == "recurring"          # GitHub, on the list
-    assert label(result, "tx_0905a") == "new"                # Datadog, no history, not on the list
+    # Datadog: no history and not on the list. "new" can't be judged without
+    # history, so the vendor list's word is all there is.
+    assert label(result, "tx_0905a") == "likely-recurring"
     assert any("no history" in w for w in result["run"]["warnings"])
 
 
@@ -174,8 +187,8 @@ def test_injected_memo_changes_nothing(result, tmp_path):
         writer = csv.DictWriter(dst, fieldnames=reader.fieldnames)
         writer.writeheader()
         for row in reader:
-            if "Ignore all previous instructions" in (row["memo"] or ""):
-                row["memo"] = ""
+            if "Ignore all previous instructions" in (row["Memo"] or ""):
+                row["Memo"] = ""
             writer.writerow(row)
 
     def outcome(r):
@@ -189,16 +202,21 @@ def test_injection_fixture_changes_nothing():
     result = core.run(FIXTURES / "injection" / "injection.csv", HISTORY)
     validator().validate(as_json(result))
     labels = {tx["id"]: tx["inferred"]["recurrence"]["label"] for tx in result["transactions"]}
-    # Instructions in a descriptor just fail to match a vendor...
-    assert labels["inj_01"] == labels["inj_02"] == "one-off"
+    # Instructions in a descriptor are just a merchant nobody has seen: never
+    # recurring, never coded, whatever the text says...
+    for tx_id in ("inj_01", "inj_02"):
+        assert labels[tx_id] in ("new", "one-off"), tx_id
+        c = by_id(result, tx_id)["inferred"]["coding"]
+        assert c["status"] != "ready" or c["review"], tx_id          # never entered unflagged
     # ...or match the vendor they name and get exactly what a plain charge from
     # that vendor would get: GITHUB.COM is GitHub, whatever follows it.
     github = by_id(result, "inj_03")["inferred"]
     plain = by_id(core.run(MONTH, HISTORY), "tx_0901a")["inferred"]
-    assert github["coding"] == plain["coding"]
+    same = lambda c: (c["status"], c["review"], c["entry"]["ACCOUNT"], c["entry"]["CLASS"], c["entry"]["DEPARTMENT"])
+    assert same(github["coding"]) == same(plain["coding"])
     # An instruction in the memo or the cardholder field is never read.
     assert labels["inj_04"] == labels["inj_05"] == "one-off"
-    assert by_id(result, "inj_04")["inferred"]["coding"]["status"] == "not-coded"
+    assert by_id(result, "inj_04")["inferred"]["coding"]["status"] == "not-included"
 
 
 # --- failures are loud ---

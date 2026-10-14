@@ -26,6 +26,7 @@
         "inputs",
         "coded",
         "log",
+        "columns",
         "context",
         "template",
         "period",
@@ -40,7 +41,7 @@
           "type": "string"
         },
         "transaction_shape": {
-          "const": "0.1.0"
+          "const": "0.2.0"
         },
         "at": {
           "type": "string",
@@ -163,6 +164,33 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        },
+        "columns": {
+          "description": "How much of each export was read. Column names and counts only.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "file",
+              "read",
+              "ignored",
+              "optional_missing"
+            ],
+            "properties": {
+              "read": {
+                "type": "integer"
+              },
+              "ignored": {
+                "type": "integer"
+              },
+              "optional_missing": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       }

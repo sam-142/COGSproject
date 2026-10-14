@@ -27,7 +27,7 @@ def cmd_draft(args):
             [_path(p) for p in args.exports],
             coded_path=_path(args.coded) if args.coded else None,
             log_path=log_path,
-            context_dir=_path(args.context) if args.context else context.DEFAULT_DIR,
+            context_dir=_path(args.context) if args.context else None,
             template_path=_path(args.template) if args.template else None,
         )
     except (load.ExportError, context.ContextError, ValueError, FileNotFoundError) as e:
@@ -76,7 +76,8 @@ def main(argv=None):
     p.add_argument("--coded", help="the auto-coder's .recurring.json output, to skip what it coded")
     p.add_argument("--log", default=DEFAULT_LOG, help=f"chase log (default: ./{DEFAULT_LOG})")
     p.add_argument("--no-log", action="store_true", help="ignore the chase log for this run")
-    p.add_argument("--context", help="directory of context files (default: this Cog's context/)")
+    p.add_argument("--context", help="folder of context files that replace this Cog's defaults, "
+                                      "file by file (vendors, cards, policy, template)")
     p.add_argument("--template", help="message template to use instead of context/message-template.md")
     p.add_argument("--out", default="output", help="where to write results (default: ./output)")
     p.set_defaults(func=cmd_draft)

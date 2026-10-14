@@ -1,0 +1,21 @@
+# How the QuickBooks entry is written. Settings, not data: change them to match
+# how accounting enters card charges. Any setting left out keeps the default
+# shown here.
+version: "1"
+status: settings
+
+# TYPE column.
+type_charge: Credit Card Expense
+type_credit: Credit Card Credit
+
+# DATE column, as a strftime pattern. 09/14/2026.
+date_format: "%m/%d/%Y"
+
+# REF NO. column: card_last4 (Brex's Last 4, the card the charge was on),
+# reference_id (Brex's Card Transaction Reference ID) or transaction_id (Brex's
+# Id). Left blank if the row has no value for it.
+ref_field: card_last4
+
+# Cut REF NO. to its last N characters, if QuickBooks limits its length.
+# null keeps it whole.
+ref_max_length: null

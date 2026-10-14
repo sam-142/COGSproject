@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(/private/**)",
+      "Read(./private/**)",
+      "Edit(/private/**)",
+      "Edit(./private/**)",
+      "Bash(*private/*)",
+      "Bash(*private *)"
+    ]
+  }
+}

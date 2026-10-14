@@ -20,4 +20,4 @@ by the schema, not left to convention, so an inferred value can't be passed off
 as one read from the statement.
 """
 
-SHAPE_VERSION = "0.1.0"
+SHAPE_VERSION = "0.2.0"

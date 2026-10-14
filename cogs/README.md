@@ -73,8 +73,10 @@ recurring-subscription-auto-coder-cog/
   tests/                 24 tests
 ```
 
-All four YAML files in `context/` are synthetic placeholders until accounting sends the real ones.
-Every run warns about this.
+The four YAML files in `context/` are **empty defaults**: no invented data ships with the Cog. Real
+ones go in an override folder (`--context`), outside the repo. The invented versions used by the
+tests and `pixi run demo` live in `sample-data/context/`, copied into `evaluation/fixtures/context/`.
+Every run says which files are empty and what that means.
 
 **How a run flows:**
 
@@ -96,42 +98,58 @@ Recurrence labels: `recurring`, `likely-recurring`, `amount-changed`, `new`, `on
 proposed only for **posted** charges labelled `recurring` that have a coding rule. Everything else
 is left for a person, with the reason.
 
+**The QuickBooks file** (`output/<month file name>.quickbooks.csv`)
+
+One row per posted subscription charge, in exactly the fields accounting enters into QuickBooks:
+
+```
+DATE,REF NO.,TYPE,PAYEE,ACCOUNT,MEMO,CLASS,DEPARTMENT,CHARGE
+09/01/2026,4417,Credit Card Expense,Amazon Web Services,Expenses:6120 Cloud Hosting,,,,1843.27
+```
+
+| Column | Filled from |
+|---|---|
+| DATE | transaction date, `MM/DD/YYYY` |
+| REF NO. | Brex `Last 4`: the card the charge was on; blank if none |
+| TYPE | `Credit Card Expense` (`Credit Card Credit` for a credit); wording set in `quickbooks.yaml` |
+| PAYEE | a coding rule, else Brex `Integration Vendor`, else Brex `Merchant Name` |
+| ACCOUNT | a coding rule, else the account already on the Brex charge, by its fully qualified name (`Integration Debit Line Category Fully Qualified Name`) |
+| MEMO | Brex `Memo` |
+| CLASS | a coding rule, else Brex `Integration Class` |
+| DEPARTMENT | a coding rule, else Brex `Integration Department` |
+| CHARGE | the amount |
+
+**Blank fields don't hold a row back.** With real Brex data and no coding rules, ACCOUNT is filled
+from Brex and CLASS and DEPARTMENT are blank (Brex doesn't have them). Only the transaction itself
+keeps a charge out: pending, declined, or not a subscription.
+
 **The review CSV** (`output/<month file name>.recurring-review.csv`)
 
-The file accounting checks. It is **not** a QuickBooks import file: the coding columns are proposals
-a person accepts or changes, and the import format isn't known yet.
+Every subscription charge, with what to check. Columns, in order:
 
-*Which rows:* every charge in the month **except** those labelled `one-off`. Travel, meals, events,
-refunds and unrecognised descriptors are left out. They are still in the JSON.
-
-*Row order:* by label, so the ones that need a person come first (`amount-changed`, `new`,
-`likely-recurring`, then `recurring`), then by vendor, then by date.
-
-*Columns, in order:*
-
-| # | Column | From | Contents |
-|---|---|---|---|
-| 1 | `label` | inferred | `amount-changed`, `new`, `likely-recurring` or `recurring` |
-| 2 | `coding_status` | inferred | `proposed` (a coding is filled in), `needs-human` (a person decides), or `waiting-for-post` (pending; coded once it settles) |
-| 3 | `vendor` | inferred | vendor id from `context/vendors.yaml`, e.g. `aws` |
-| 4 | `merchant_descriptor` | CSV | the raw descriptor, e.g. `AWS EMEA aws.amazon.co` |
-| 5 | `amount` | CSV | two decimals; positive is a charge |
-| 6 | `currency` | CSV | e.g. `USD` |
-| 7 | `transaction_date` | CSV | `YYYY-MM-DD` |
-| 8 | `status` | CSV | `posted` or `pending` |
-| 9 | `card_last4` | CSV | last four digits of the card |
-| 10 | `cardholder` | CSV | name the card is under, which isn't necessarily who spent it |
-| 11 | `account` | inferred | proposed account number; blank unless `coding_status` is `proposed` |
-| 12 | `class` | inferred | proposed class; blank unless `proposed` |
-| 13 | `department` | inferred | proposed department; blank unless `proposed` |
-| 14 | `entity` | inferred | proposed entity; blank unless `proposed` |
-| 15 | `months_seen` | inferred | earlier months the vendor was charged, space-separated, e.g. `2026-07 2026-08` |
-| 16 | `reason` | inferred | why it isn't coded, or for a proposed coding, why it was labelled recurring |
-| 17 | `transaction_id` | CSV | ties the row back to the export and to the JSON |
-
-"From CSV" columns are copied from the export unchanged. "Inferred" columns are what the Cog worked
-out. Columns 11–14 currently come from **invented** coding rules, so they show the shape of a coding,
-not a real one.
+| # | Column | Contents |
+|---|---|---|
+| 1 | `label` | `amount-changed`, `new`, `likely-recurring` or `recurring` |
+| 2 | `quickbooks` | `ready` (in the QuickBooks file) or `waiting-for-post` (pending) |
+| 3 | `review` | what a person should check, if anything: a new vendor, one month of history, an amount that moved |
+| 4 | `vendor` | vendor id: from the vendor list, or made from Brex's Merchant Name |
+| 5 | `merchant_name` | Brex `Merchant Name` |
+| 6 | `merchant_descriptor` | Brex `Statement Descriptor` |
+| 7 | `amount` | two decimals |
+| 8 | `currency` | e.g. `USD` |
+| 9 | `change_vs_last` | e.g. `+34.6% vs 520.00 (2026-08)` |
+| 10 | `transaction_date` | `YYYY-MM-DD` |
+| 11 | `status` | `posted` or `pending` |
+| 12 | `card_last4` | Brex `Last 4` |
+| 13 | `cardholder` | Brex `User` |
+| 14 | `account` | the entry's ACCOUNT |
+| 15 | `account_from` | `rule` or `export` (the Brex charge) |
+| 16 | `class` | the entry's CLASS |
+| 17 | `department` | the entry's DEPARTMENT |
+| 18 | `blank_fields` | which QuickBooks fields are blank, e.g. `MEMO CLASS DEPARTMENT` |
+| 19 | `months_seen` | earlier months the vendor was charged |
+| 20 | `reason` | **why it counts as a subscription**: every piece of evidence that applies, joined with `; `. Any of: on the vendor list as a subscription (with its billing); Brex category; on the known-recurring list; charged in N earlier months (naming them); same amount (±10%) in N earlier months (fixed-price only). E.g. `Brex category: Recurring software & SaaS; charged in 2 earlier months (2026-07, 2026-08)` |
+| 21 | `transaction_id` | Brex `Id`; ties the row to the QuickBooks file and the JSON |
 
 **Running it** (from `cogs/recurring-subscription-auto-coder-cog/`):
 
@@ -162,7 +180,7 @@ chase-list-builder-cog/
     report.py             writes JSON, chase-list CSV, drafts for review
 
   context/
-    cards.yaml                card -> channel, cardholder, users (synthetic)
+    cards.yaml                card -> channel, cardholder, users (empty by default)
     chase-policy.yaml         what's chased, what each message asks (placeholder)
     message-template.md       the wording of every message; editable, see context/README.md
     vendors.yaml              SHARED

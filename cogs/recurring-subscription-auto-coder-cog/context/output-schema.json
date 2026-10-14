@@ -23,6 +23,7 @@
         "mode",
         "binding",
         "inputs",
+        "columns",
         "context",
         "tolerance",
         "counts",
@@ -37,7 +38,7 @@
           "type": "string"
         },
         "transaction_shape": {
-          "const": "0.1.0"
+          "const": "0.2.0"
         },
         "at": {
           "type": "string",
@@ -93,6 +94,33 @@
           "items": {
             "type": "string"
           }
+        },
+        "columns": {
+          "description": "How much of each export was read. Column names and counts only.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "file",
+              "read",
+              "ignored",
+              "optional_missing"
+            ],
+            "properties": {
+              "read": {
+                "type": "integer"
+              },
+              "ignored": {
+                "type": "integer"
+              },
+              "optional_missing": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -118,7 +146,10 @@
                       "label",
                       "reason",
                       "source",
-                      "evidence"
+                      "evidence",
+                      "billing",
+                      "amount_flag",
+                      "why_subscription"
                     ],
                     "properties": {
                       "label": {
@@ -133,12 +164,32 @@
                       "source": {
                         "enum": [
                           "history",
-                          "context"
+                          "context",
+                          "export"
                         ]
+                      },
+                      "billing": {
+                        "enum": [
+                          "usage",
+                          "fixed"
+                        ]
+                      },
+                      "amount_flag": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "why_subscription": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
                       }
                     }
                   },
                   "coding": {
+                    "description": "The QuickBooks entry for a subscription charge, or why there isn't one.",
                     "type": "object",
                     "required": [
                       "status",
@@ -147,30 +198,120 @@
                     "properties": {
                       "status": {
                         "enum": [
-                          "proposed",
-                          "needs-human",
+                          "ready",
                           "waiting-for-post",
-                          "not-coded"
+                          "not-included"
                         ]
                       }
                     },
                     "if": {
                       "properties": {
                         "status": {
-                          "const": "proposed"
+                          "const": "ready"
                         }
                       }
                     },
                     "then": {
                       "required": [
-                        "account",
-                        "class",
-                        "department",
-                        "entity"
+                        "entry",
+                        "from",
+                        "blank",
+                        "review"
                       ],
                       "properties": {
                         "source": {
-                          "const": "rule"
+                          "enum": [
+                            "rule",
+                            "export"
+                          ]
+                        },
+                        "entry": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "DATE",
+                            "REF NO.",
+                            "TYPE",
+                            "PAYEE",
+                            "ACCOUNT",
+                            "MEMO",
+                            "CLASS",
+                            "DEPARTMENT",
+                            "CHARGE"
+                          ],
+                          "properties": {
+                            "DATE": {
+                              "type": "string"
+                            },
+                            "REF NO.": {
+                              "type": "string"
+                            },
+                            "TYPE": {
+                              "type": "string"
+                            },
+                            "PAYEE": {
+                              "type": "string"
+                            },
+                            "ACCOUNT": {
+                              "type": "string"
+                            },
+                            "MEMO": {
+                              "type": "string"
+                            },
+                            "CLASS": {
+                              "type": "string"
+                            },
+                            "DEPARTMENT": {
+                              "type": "string"
+                            },
+                            "CHARGE": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "from": {
+                          "type": "object",
+                          "required": [
+                            "DATE",
+                            "REF NO.",
+                            "TYPE",
+                            "PAYEE",
+                            "ACCOUNT",
+                            "MEMO",
+                            "CLASS",
+                            "DEPARTMENT",
+                            "CHARGE"
+                          ],
+                          "additionalProperties": {
+                            "enum": [
+                              "rule",
+                              "export",
+                              "context",
+                              "none"
+                            ]
+                          }
+                        },
+                        "blank": {
+                          "type": "array",
+                          "items": {
+                            "enum": [
+                              "DATE",
+                              "REF NO.",
+                              "TYPE",
+                              "PAYEE",
+                              "ACCOUNT",
+                              "MEMO",
+                              "CLASS",
+                              "DEPARTMENT",
+                              "CHARGE"
+                            ]
+                          }
+                        },
+                        "review": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         }
                       }
                     },

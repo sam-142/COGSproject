@@ -15,15 +15,19 @@ def _defuse(value):
 def _values(tx, questions):
     p, inf = tx["parsed"], tx["inferred"]
     pending = p["status"] == "pending"
+    # Brex fills Original Amount on every row; it's only worth saying when the
+    # charge was in another currency.
+    foreign = p["original_currency"] and p["original_currency"] != p["currency"]
     original = (f" (originally {p['original_amount']:,.2f} {p['original_currency']})"
-                if p["original_amount"] and p["original_currency"] else "")
+                if foreign and p["original_amount"] is not None else "")
     form = [f"ref: {tx['id']}"] + [f"{q['key']}:" for q in questions]
     values = {
         "card_last4": p["card_last4"] or "????",
         "cardholder": p["cardholder"] or "",
         "channel": inf["route"]["channel"] or "",
-        "merchant": p["merchant_descriptor"],
-        "vendor": inf["vendor"]["id"] or p["merchant_descriptor"],
+        "merchant": p["merchant_name"] or p["merchant_descriptor"],
+        "descriptor": p["merchant_descriptor"],
+        "vendor": inf["vendor"]["id"] or p["merchant_name"] or p["merchant_descriptor"],
         "amount": f"{p['amount']:,.2f}",
         "currency": p["currency"] or "",
         "original_amount": original,
@@ -37,7 +41,7 @@ def _values(tx, questions):
     assert set(values) == PLACEHOLDERS
     # Defuse what came from the export. The questions and the form come from
     # context/, which a person on the team wrote.
-    for key in ("cardholder", "merchant", "vendor", "currency", "transaction_id"):
+    for key in ("cardholder", "merchant", "descriptor", "vendor", "currency", "transaction_id"):
         values[key] = _defuse(values[key])
     values["reply_form"] = "\n".join([f"ref: {_defuse(tx['id'])}"] + form[1:])
     return values

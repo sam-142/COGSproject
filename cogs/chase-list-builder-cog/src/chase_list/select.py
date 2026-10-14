@@ -25,26 +25,32 @@ def route(transactions, cards):
 
 
 def decide(transactions, policy, coded, log_entries):
-    """`coded` maps transaction id -> the auto-coder's coding status, or is empty."""
+    """`coded` maps transaction id -> (the auto-coder's entry status, its review note),
+    or is empty."""
     for tx in transactions:
         p = tx["parsed"]
+        entry_status, review = coded.get(tx["id"], (None, None))
         entry, how = log.already_chased(tx, log_entries)
 
         if entry:
             if how.endswith("(matched by card, merchant and date)") and "pending_match" not in tx["inferred"]:
                 record_match(tx, entry)
             status, reason = "already-chased", f"{how} was chased on {entry['sent_on']}"
+        elif p["status"] == "declined":
+            status, reason = "skip", "declined charge"
         elif policy["skip_refunds"] and p["amount"] < 0:
             status, reason = "skip", "refund"
-        elif policy["skip_coded_by_auto_coder"] and coded.get(tx["id"]) == "proposed":
-            status, reason = "skip", "the auto-coder proposed a coding"
+        elif policy["skip_coded_by_auto_coder"] and entry_status == "ready" and not review:
+            # A subscription the auto-coder put in the QuickBooks file with nothing
+            # to check: accounting knows what it is, so there's nobody to ask.
+            status, reason = "skip", "a subscription the auto-coder entered for QuickBooks"
         elif policy["skip_when_receipt_and_memo"] and p["receipt_attached"] and p["memo"]:
             status, reason = "skip", "receipt attached and memo filled in"
         elif tx["inferred"]["route"]["channel"] is None:
             status, reason = "needs-routing", "card not in context/cards.yaml; a person picks who to ask"
         else:
             status = "draft"
-            reason = ("the auto-coder couldn't code it" if coded.get(tx["id"]) == "needs-human"
+            reason = (f"the auto-coder flagged it: {review}" if review
                       else "no information on file for this charge")
 
         questions = [q for q in policy["ask_for"]

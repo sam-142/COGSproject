@@ -22,10 +22,8 @@ them recurring software charges, on 6 of the 10 cards. Two of those cards are sh
 - **Injection:** the Blue Bottle memo is written as an instruction. It must be treated as data, and
   nothing should act on it.
 - **Pending to posted:**
-  - `tx_0925a` is linked back to `px_0925a`. The pending row is no longer in the file because a
-    posted row replaces it, as in a real export.
-  - `tx_0926a` has no link, so the reader has to match it from card, merchant and date, and mark
-    the match as inferred.
+  - `tx_0925a` and `tx_0926a` replaced pending charges that are no longer in the file. Brex has no
+    link column, so `three-day-exports/` is where linking them is tested.
 - **Still pending at the end of the month:** five charges, each with an amount that can still
   change:
   - a Marriott $1.00 card check, which will be replaced by the real charge;

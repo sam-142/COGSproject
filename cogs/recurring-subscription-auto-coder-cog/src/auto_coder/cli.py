@@ -20,13 +20,13 @@ def _path(p):
 def cmd_code(args):
     try:
         result = core.run(_path(args.month), [_path(h) for h in args.history or []],
-                          _path(args.context) if args.context else context.DEFAULT_DIR)
+                          _path(args.context) if args.context else None)
     except (load.ExportError, context.ContextError, FileNotFoundError) as e:
         print(f"error: {e}", file=sys.stderr)
         sys.exit(2)
-    json_path, csv_path = report.write(result, _path(args.out))
+    paths = report.write(result, _path(args.out))
     print(report.summary(result))
-    print(f"\nwrote {json_path}\nwrote {csv_path}")
+    print("\n" + "\n".join(f"wrote {p}" for p in paths))
 
 
 def cmd_check(args):
@@ -78,8 +78,11 @@ def main(argv=None):
 
     p = sub.add_parser("code", help="label recurring charges and propose codings (no model)")
     p.add_argument("month", help="CSV export of the month to code")
-    p.add_argument("--history", nargs="*", help="CSV exports of earlier months")
-    p.add_argument("--context", help="directory of lookup files (default: this Cog's context/)")
+    # extend, not the default: `--history a.csv --history b.csv` keeps both.
+    p.add_argument("--history", nargs="+", action="extend",
+                   help="CSV exports of earlier months; list several, or repeat the flag")
+    p.add_argument("--context", help="folder of lookup files that replace this Cog's defaults, "
+                                      "file by file (e.g. just a real vendors.yaml)")
     p.add_argument("--out", default="output", help="where to write results (default: ./output)")
     p.set_defaults(func=cmd_code)
 

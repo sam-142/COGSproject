@@ -15,6 +15,7 @@ copy drifts from `sample-data/`.
 | `long-history/` | six months of history; a subscription cancelled months ago, one stopped last month |
 | `double-charge/` | the same subscription charged twice on one day |
 | `history-order/` | a later month passed in as history |
+| `usage-billing/` | usage-billed vs fixed-price changes; merchants found through Brex's name and category |
 
 **Known gaps.** `long-history`, `double-charge` and `history-order` each contain a case the Cog gets
 wrong today. Their tests are marked as expected failures (`xfail`, strict), so they show as `x` in

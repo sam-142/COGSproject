@@ -25,8 +25,8 @@ auto-coder = { path = ".", editable = true }
 #   pixi run code month.csv --history earlier1.csv earlier2.csv [--out DIR]
 code = "python -m auto_coder code"
 
-# The same, on the synthetic fixtures shipped with this Cog.
-demo = "python -m auto_coder code evaluation/fixtures/baseline/brex-transactions-2026-09.csv --history evaluation/fixtures/baseline/brex-transactions-2026-07.csv evaluation/fixtures/baseline/brex-transactions-2026-08.csv"
+# The same, on the synthetic fixtures and synthetic context shipped with this Cog.
+demo = "python -m auto_coder code evaluation/fixtures/baseline/brex-transactions-2026-09.csv --history evaluation/fixtures/baseline/brex-transactions-2026-07.csv evaluation/fixtures/baseline/brex-transactions-2026-08.csv --context evaluation/fixtures/context"
 
 # Prove the model answers: a one-token completion, not a /models listing,
 # which gateways serve without checking the key or the model.

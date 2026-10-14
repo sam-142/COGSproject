@@ -32,7 +32,7 @@ def draft(result, tx_id):
 def test_bad_rows_dont_stop_the_run():
     result = run("malformed/bad-rows.csv")
     assert [t["id"] for t in result["transactions"]] == ["m_ok", "m_refund"]
-    assert result["run"]["counts"]["unparsed_rows"] == 5
+    assert result["run"]["counts"]["unparsed_rows"] == 6
     assert chase(result, "m_refund")["status"] == "skip"
 
 
@@ -87,11 +87,12 @@ def test_receipt_question_only_when_no_receipt(tx_id, asks):
 
 
 def test_policy_can_skip_charges_with_receipt_and_memo(tmp_path):
+    # Override only the policy; everything else keeps the (synthetic test) defaults.
     ctx = tmp_path / "context"
-    shutil.copytree(ROOT / "context", ctx)
-    policy = ctx / "chase-policy.yaml"
-    policy.write_text(policy.read_text().replace("skip_when_receipt_and_memo: false",
-                                                 "skip_when_receipt_and_memo: true"))
+    ctx.mkdir()
+    (ctx / "chase-policy.yaml").write_text(
+        (ROOT / "context" / "chase-policy.yaml").read_text()
+        .replace("skip_when_receipt_and_memo: false", "skip_when_receipt_and_memo: true"))
     result = run("receipts/export.csv", context_dir=ctx)
     assert chase(result, "rc_receipt_and_memo")["status"] == "skip"
     for tx_id in ("rc_none", "rc_receipt_only", "rc_memo_only"):   # need both to be skipped
@@ -108,14 +109,16 @@ def test_two_visits_each_match_their_own_pending_charge():
     assert {(s["pending_id"], s["replaced_by"], s["how"]) for s in result["superseded"]} == {
         ("mt_px_a", "mt_tx_a", "match"),
         ("mt_px_b", "mt_tx_b", "match"),
-        ("mt_px_other_card", "mt_tx_other_card", "export"),
+        ("mt_px_other_card", "mt_tx_other_card", "match"),
     }
 
 
 def test_same_merchant_on_another_card_is_not_matched():
+    # Visit 1 on card 7742 and the visit on card 1290 are the same merchant, same
+    # day, same pending amount. Each must match the pending charge on its own card.
     result = run(EARLY, LATE)
     tx = next(t for t in result["transactions"] if t["id"] == "mt_tx_other_card")
-    assert "pending_match" not in tx["inferred"]          # linked by the export, not guessed
+    assert tx["inferred"]["pending_match"]["pending_transaction_id"] == "mt_px_other_card"
 
 
 def test_hold_that_never_posts_stays_pending_and_is_chased():
@@ -157,11 +160,79 @@ def test_cardholder_name_cant_ping_either(tmp_path):
     assert text == "Card holder: (at)everyone\n"
 
 
+# --- an override folder replaces context files one by one --------------------
+
+def test_override_folder_replaces_only_the_files_it_has(tmp_path):
+    (tmp_path / "message-template.md").write_text("Ask about {merchant} on {card_last4}\n")
+    (tmp_path / "cards.yaml").write_text(
+        'status: real\ncards:\n  - {last4: "1290", cardholder: A, channel: "#travel-card"}\n')
+    result = run("routing/export.csv", context_dir=tmp_path)
+    assert draft(result, "rt_known") == {
+        "id": "draft-rt_known", "transaction_id": "rt_known", "channel": "#travel-card",
+        "needs_routing": False, "text": "Ask about Delta Air Lines on 1290\n"}
+    versions = result["run"]["context"]
+    assert versions["cards"]["from"] == "override" and versions["chase-policy"]["from"] == "default"
+
+
+def test_template_flag_beats_the_override_folder(tmp_path):
+    (tmp_path / "message-template.md").write_text("from the folder\n")
+    flag = tmp_path / "flag.md"
+    flag.write_text("from the flag\n")
+    result = run("routing/export.csv", context_dir=tmp_path, template_path=flag)
+    assert draft(result, "rt_known")["text"] == "from the flag\n"
+
+
+# --- declined ----------------------------------------------------------------
+
+def test_declined_charge_is_skipped_not_chased():
+    result = run("declined/export.csv")
+    assert chase(result, "dc_declined") == {"source": "rule", "status": "skip",
+                                            "reason": "declined charge", "ask_for": []}
+    assert chase(result, "dc_ok")["status"] == "draft"
+
+
+# --- dropped columns never reach an output ----------------------------------
+
+DROPPED = ["fake-spender.example", "receipts.fake-brex.example", "dashboard.fake-brex.example",
+           "Fake Approver", "Fake Attendee", "Fake Team Budget", "Fake Card Policy",
+           "Liabilities:2100", "15:30:00"]
+
+
+def test_dropped_columns_never_reach_an_output(tmp_path):
+    from chase_list import report
+    result = run("baseline/brex-transactions-2026-09.csv", "three-day-exports/brex-export-2026-09-30.csv")
+    written = "".join(p.read_text() for p in report.write(result, tmp_path)) + report.summary(result)
+    leaked = [v for v in DROPPED if v in written]
+    assert not leaked, f"dropped columns leaked into the output: {leaked}"
+
+
+def test_a_sent_draft_logs_no_dropped_columns(tmp_path):
+    result = run("baseline/brex-transactions-2026-09.csv")
+    saved = tmp_path / "r.chase.json"
+    saved.write_text(json.dumps(result, default=shape.to_json))
+    cli.main(["sent", str(saved), "--log", str(tmp_path / "log.json")])
+    logged = (tmp_path / "log.json").read_text()
+    assert not [v for v in DROPPED if v in logged]
+
+
 # --- the copies match sample-data/ -------------------------------------------
 
 @pytest.mark.skipif(not SAMPLE_DATA.exists(), reason="sample-data/ not alongside this Cog")
-@pytest.mark.parametrize("path", sorted(p.relative_to(FIXTURES) for p in FIXTURES.rglob("*.csv")),
-                         ids=str)
+@pytest.mark.parametrize("path", sorted(p.relative_to(FIXTURES) for p in FIXTURES.rglob("*")
+                                        if p.suffix in (".csv", ".yaml")), ids=str)
 def test_fixture_matches_sample_data(path):
     assert filecmp.cmp(FIXTURES / path, SAMPLE_DATA / path, shallow=False), \
         f"{path} differs from sample-data/{path}; change sample-data, then copy it here"
+
+
+# --- a wrong --context fails instead of quietly using the defaults -----------
+
+@pytest.mark.parametrize("make, message", [
+    (lambda d: (d / "vendors.yaml").write_text("vendors: []\n") and d / "vendors.yaml", "takes a folder, not a file"),
+    (lambda d: d / "nope", "folder not found"),
+    (lambda d: (d / "notes.txt").write_text("x") and d, "has none of"),
+])
+def test_wrong_context_is_an_error(make, message, tmp_path):
+    from chase_list import context
+    with pytest.raises(context.ContextError, match=message):
+        context.load(make(tmp_path))

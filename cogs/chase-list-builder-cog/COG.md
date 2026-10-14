@@ -11,8 +11,9 @@ manifest_schema: openteams/cog-package [0.1]
 
 # Chase-list builder
 
-> **Early version.** It drafts messages from a template, with no model step. The card list, the
-> chase policy and the vendor patterns in `context/` are placeholders. Reading replies back in is
+> **Early version.** It drafts messages from a template, with no model step. The card list and
+> vendor list in `context/` are empty until real ones are supplied, and the chase policy is a
+> placeholder. Reading replies back in is
 > not built yet. See [Known limitations](#known-limitations).
 
 ## Purpose
@@ -55,19 +56,24 @@ to ask, and drafts the message. A person reads the drafts and sends the ones the
 
 ## Expected inputs
 
-- **One or more CSV exports** from Brex, in any order. The expected columns are documented in
-  `sample-data/README.md` at the repo root; they are a placeholder until accounting sends a real
-  export.
+- **One or more CSV exports** from Brex, in any order. Brex's standard export, all 70 columns, as downloaded:
+  don't trim it. The reader keeps only the 22 columns the Cogs use and drops the rest (emails,
+  receipt links, approvers, budgets) as each row is read; the run record says how many columns were
+  read and ignored. The columns, and how each is read, are listed in `sample-data/README.md` at the
+  repo root. Real exports belong in `private/`.
 - **The chase log** (`--log`, default `./chase-log.json`): what has already been sent.
 - **The auto-coder's output** (`--coded`, optional): its `.recurring.json` file for the same
-  period. Charges it proposed a coding for are skipped; charges it left for a person are chased
-  with that reason.
+  period. Subscription charges it entered for QuickBooks with nothing to check are skipped;
+  entries it flagged for review are chased with the flag as the reason.
 - **Context files** in `context/`, which the code reads (see
   [`context/README.md`](context/README.md)):
-  - `cards.yaml`: each card's channel, cardholder and users. **Synthetic.**
+  - `cards.yaml`: each card's channel, cardholder and users. **Empty by default**, so every
+    chase is `needs-routing` until real cards are supplied in an override folder. The invented
+    cards the tests and demo use are in `evaluation/fixtures/context/`.
   - `chase-policy.yaml`: which charges to chase and what to ask. **Placeholder.**
   - `message-template.md`: the wording of every message.
-  - `vendors.yaml` and `transaction.schema.json`: shared with the auto-coder.
+  - `vendors.yaml` (empty by default) and `transaction.schema.json`: shared with the
+    auto-coder.
 - **Frames** in `frames/`: [`frames/chasing.md`](frames/chasing.md), how chasing works at
   OpenTeams, written for a model. Nothing reads it yet.
 
@@ -76,12 +82,18 @@ to ask, and drafts the message. A person reads the drafts and sends the ones the
 ```
 pixi run draft export.csv [more.csv ...] [--coded auto-coder.json] [--log chase-log.json]
 pixi run sent output/chase_<from>_to_<to>.chase.json [--only draft-tx_0910c ...]
-pixi run demo        # the synthetic September, ignoring the chase log
+pixi run demo        # the synthetic September and synthetic cards, ignoring the chase log
 pixi run test
 ```
 
 Other options for `draft`: `--no-log`, `--template PATH`, `--context DIR`, `--out DIR`. Relative
 paths are resolved from the directory you run the command in.
+
+`--context DIR` is an **override folder**: each file in it (`vendors.yaml`, `cards.yaml`,
+`chase-policy.yaml`, `message-template.md`) replaces this Cog's default, and anything it doesn't
+have keeps the default. Real cards, channels and vendor lists go there, in `private/`, never in
+`context/`. `tools/vendors_to_yaml.py` at the repo root turns a plain vendor list into
+`vendors.yaml`. `--template` wins over the folder's template.
 
 ## How it works, and where a person decides
 
@@ -121,7 +133,7 @@ summary printed to the terminal:
   - `vendor`;
   - `route`: the card's channel;
   - `chase`: the decision and its reason;
-  - `pending_match`, when a pending charge was matched rather than linked by the export.
+  - `pending_match`, when a posted charge was matched to the pending charge it replaced.
 
   It also has the drafts, the superseded pending rows, and a run record: inputs, context versions,
   counts, warnings, and the model binding (`null`, no model yet). The contract is
@@ -149,9 +161,14 @@ Chase decisions:
 
 ## Known limitations
 
-- **Column names are a guess** until a real Brex export arrives.
-- **The card list is invented.** Real cards, users and channels are needed before any draft is
-  addressed correctly.
+- **One real export seen so far.** The reader matches its layout, but some things weren't in it:
+  - **pending charges:** `Payment Status` `Pending` is assumed to mean pending;
+  - **refunds:** assumed to be negative amounts;
+  - **a pending-to-posted link:** Brex has none, so links are always matches on card, merchant and
+    date.
+- **Declined charges** are read and counted, but never acted on.
+- **There is no card list until one is supplied.** Real cards, users and channels are needed
+  before any draft is addressed; until then every draft is `needs-routing`.
 - **The policy chases almost everything.** Accounting hasn't said what counts as "enough
   information". Without the auto-coder's output, recurring subscriptions are chased too: 50 of 51
   charges in the sample month.

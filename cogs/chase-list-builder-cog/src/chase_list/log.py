@@ -41,13 +41,10 @@ def already_chased(tx, entries):
     by_id = {e["transaction_id"]: e for e in entries}
     if tx["id"] in by_id:
         return by_id[tx["id"]], "same transaction"
-    pid = tx["parsed"]["pending_transaction_id"]
-    if pid and pid in by_id:
-        return by_id[pid], "its pending charge (linked in the export)"
     matched = (tx["inferred"].get("pending_match") or {}).get("pending_transaction_id")
     if matched and matched in by_id:
         return by_id[matched], "its pending charge (matched by card, merchant and date)"
-    if tx["parsed"]["status"] == "posted" and not pid:
+    if tx["parsed"]["status"] == "posted":
         pend = match_pending([e for e in entries if e.get("status") == "pending"], tx)
         if pend:
             return pend, "its pending charge (matched by card, merchant and date)"

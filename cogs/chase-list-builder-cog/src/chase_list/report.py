@@ -8,7 +8,7 @@ from cog_transactions.shape import to_json
 ORDER = ["needs-routing", "draft", "already-chased", "skip"]
 
 LIST_COLUMNS = [
-    "chase_status", "channel", "card_last4", "cardholder", "merchant_descriptor", "vendor",
+    "chase_status", "channel", "card_last4", "cardholder", "merchant_name", "merchant_descriptor", "vendor",
     "amount", "currency", "transaction_date", "status", "asks_for", "reason", "draft_id",
     "transaction_id",
 ]
@@ -29,6 +29,7 @@ def _rows(result):
             "channel": inf["route"]["channel"] or "",
             "card_last4": p["card_last4"] or "",
             "cardholder": p["cardholder"] or "",
+            "merchant_name": p["merchant_name"] or "",
             "merchant_descriptor": p["merchant_descriptor"],
             "vendor": inf["vendor"]["id"] or "",
             "amount": f"{p['amount']:.2f}",
@@ -57,7 +58,7 @@ def _drafts_md(result):
         lines += [f"## {channel}", ""]
         for d in groups[channel]:
             p = txs[d["transaction_id"]]["parsed"]
-            lines += [f"### {d['id']}: {p['merchant_descriptor']}, {p['amount']:.2f} {p['currency'] or ''}",
+            lines += [f"### {d['id']}: {p['merchant_name'] or p['merchant_descriptor']}, {p['amount']:.2f} {p['currency'] or ''}",
                       "", d["text"].rstrip(), "", "---", ""]
     return "\n".join(lines)
 
@@ -85,7 +86,7 @@ def summary(result):
             continue
         lines.append(f"\n{status} ({len(group)})")
         for r in group:
-            lines.append(f"  {r['channel'] or '-':<11} {r['merchant_descriptor'][:28]:<28} "
+            lines.append(f"  {r['channel'] or '-':<11} {(r['merchant_name'] or r['merchant_descriptor'])[:28]:<28} "
                          f"{r['amount']:>9} {r['currency']}  {r['transaction_date']}  {r['status']}")
             if status != "draft":
                 lines.append(f"  {'':<11} {r['reason']}")
