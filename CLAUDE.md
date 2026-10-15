@@ -28,7 +28,8 @@ Test data lives in `sample-data/`, one folder per case; each Cog copies the fold
 Change them in one Cog, then copy them to the other; never let the copies differ. The
 chase-list builder's tests fail if they do. Anything specific to one Cog stays out of `cog_transactions`.
 
-Both Cogs have manifests and run end to end on synthetic data, with no model step yet. `cogs/SPEC.md` is Trent Oliphant's CogSpec v0.1 — the Cogs reference it
+Both Cogs have manifests and run end to end on Brex's real export layout (tested on synthetic data
+in that layout), with no model step yet. `cogs/SPEC.md` is Trent Oliphant's CogSpec v0.1 — the Cogs reference it
 but are not bound by it (`cogs/README.md`). Where this file and the spec disagree, say so rather
 than silently picking one.
 
@@ -136,7 +137,7 @@ The spec's optional directories, and what each is for here:
 |---|---|
 | `skills/` | reusable task guidance the Cog invokes |
 | `frames/` | **Markdown only.** Org context written for the model to read: how charges behave, how accounting works, cardholder habits |
-| `context/` | everything the code reads directly: lookup data as YAML (vendor patterns, coding rules, chart of accounts, known recurring list), the output schema, the output example, and later the model instructions |
+| `context/` | everything the code reads directly: lookup data as YAML (vendor list, coding rules, chart of accounts, known recurring list, cards), settings (`quickbooks.yaml`, `chase-policy.yaml`, the message template), the output schema, the output example, and later the model instructions. **Lookup data is empty by default**: real files go in an override folder (`--context`) outside the repo, and invented ones are test data in `sample-data/context/` |
 | `references/` | supporting docs — PDF layout notes, issuer quirks |
 | `evaluation/` | fixtures, criteria, results |
 
@@ -243,8 +244,17 @@ Record the answers here as they land.
 - **Decided: target pixi only for now.** Collab (Apollo) compatibility is deferred until we know how
   it calls a Cog. Keep the logic out of the CLI so a Collab interface can be added later without
   rewriting anything.
-- PDF text extraction library: `pypdf` is lighter; `pdfplumber` gives word-level coordinates, which
-  is what makes a per-field source anchor precise.
+- **Decided: input is Brex's CSV export**, read in full (70 columns) and trimmed to 22 on reading.
+  Dates are `MM/DD/YYYY`. `Payment Status` gives the status. There is no pending-to-posted link
+  column, so links are always matches. The PDF library question is moot unless PDFs come back.
+- **Decided: the auto-coder's output is a QuickBooks file** in accounting's nine fields: DATE,
+  REF NO. (`Last 4`), TYPE, PAYEE, ACCOUNT (`Integration Debit Line Category Fully Qualified Name`),
+  MEMO, CLASS, DEPARTMENT, CHARGE. Blank fields never block an entry; only the transaction does
+  (pending, declined, not a subscription). Coding rules are optional overrides.
+- **Decided: no invented data in the Cogs' defaults.** Lookup files in `context/` are empty; real
+  ones live in `private/context/` and are passed with `--context`.
+- **Open: reply format and where answers go** (a `provided` object in the transaction shape is the
+  suggestion) — needed before the chase-list builder reads replies.
 - `license` for both — pick once.
 - Whether receipt parsing lands in `chase-list-builder-cog` or its own Cog.
 

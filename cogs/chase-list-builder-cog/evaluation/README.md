@@ -8,10 +8,12 @@ copy drifts from `sample-data/`.
 
 | Folder | What it tests |
 |---|---|
+| `context/` | the **invented** cards and vendors the tests and demo run on. The Cog's own defaults are empty |
 | `baseline/` | a realistic month (September only); the demo runs on it |
 | `three-day-exports/` | two exports three days apart; pending charges that post in between |
 | `injection/` | text that reads like instructions. Blanking the memo and cardholder must change no decision, and no injected text may reach a draft |
-| `malformed/` | bad rows, a missing column, an empty export, an Excel-style file |
+| `malformed/` | bad rows, a missing column, only the required columns, an empty export, an Excel-style file |
+| `declined/` | a declined charge next to a normal one: skipped, never chased |
 | `routing/` | an unknown card and a missing card number: `needs-routing` |
 | `receipts/` | every combination of receipt and memo, under both policy settings |
 | `matching/` | two visits to the same place, a hold that never posts, the same merchant on another card |

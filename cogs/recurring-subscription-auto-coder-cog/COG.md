@@ -31,8 +31,9 @@ It **proposes**. A person checks the entries before anything reaches QuickBooks.
 - Reading a month of card transactions from a CSV export, plus earlier months for history.
 - Turning messy merchant descriptors into one vendor name (`AWS EMEA` and `Amazon Web Services` →
   `aws`).
-- Labelling each charge `recurring`, `likely-recurring`, `new` or `one-off`, with the months and
-  amounts that support the label.
+- Labelling each charge `recurring`, `likely-recurring`, `amount-changed`, `new` or `one-off`,
+  and recording every piece of evidence that it's a subscription (vendor list, Brex category,
+  earlier months, known-recurring list, matching amount).
 - Flagging recurring charges whose amount changed, and known recurring vendors that didn't charge
   this month.
 - Writing a QuickBooks entry (DATE, REF NO., TYPE, PAYEE, ACCOUNT, MEMO, CLASS, DEPARTMENT,
@@ -42,8 +43,8 @@ It **proposes**. A person checks the entries before anything reaches QuickBooks.
 
 ## Unsupported work
 
-- **Chasing people for information.** That is `chase-list-builder-cog`. This Cog lists what it
-  couldn't code; it doesn't ask anyone about it.
+- **Chasing people for information.** That is `chase-list-builder-cog`. This Cog flags what a
+  person should check; it doesn't ask anyone about it.
 - **Coding pending charges.** A pending amount and descriptor can still change, so pending charges
   are marked `waiting-for-post` and never coded.
 - **Coding one-off charges.** Travel, events and other one-offs are labelled and passed over.
@@ -62,14 +63,16 @@ It **proposes**. A person checks the entries before anything reaches QuickBooks.
   receipt links, approvers, budgets) as each row is read; the run record says how many columns were
   read and ignored. The columns, and how each is read, are listed in `sample-data/README.md` at the
   repo root. Real exports belong in `private/`.
-- **History:** CSVs for earlier months. Without history, almost nothing can be labelled
-  `recurring`.
+- **History:** Brex CSVs for earlier months (`--history`, several files). Without history, a
+  subscription is `likely-recurring` at best.
 - **Lookup data**, which the code reads directly. The files in `context/` are **empty by
   default**: the Cog ships with no vendor list, no coding rules and no chart of accounts, so a run
   on real data uses only real data. Every run says which files are empty and what that means. The invented versions the tests and `pixi run demo` use are
   in `evaluation/fixtures/context/`, copied from `sample-data/context/`.
-  - [`context/vendors.yaml`](context/vendors.yaml): descriptor patterns → vendor, and each vendor's
-    category. Only `subscription` vendors can be labelled recurring.
+  - [`context/vendors.yaml`](context/vendors.yaml): the vendor list: names or patterns → vendor,
+    with each vendor's category and billing (`usage` or `fixed`). Only `subscription` vendors can
+    be labelled recurring. Merchants not on it fall back to Brex's Merchant Name, and count as
+    subscriptions when Brex's category is in `brex_subscription_categories`.
   - [`context/known-recurring.yaml`](context/known-recurring.yaml): vendors accounting already
     knows recur. These are established even with no history.
   - [`context/coding-rules.yaml`](context/coding-rules.yaml): optional per-vendor overrides
@@ -78,8 +81,8 @@ It **proposes**. A person checks the entries before anything reaches QuickBooks.
     made from Brex's Merchant Name (`datadog` for "Datadog").
   - [`context/quickbooks.yaml`](context/quickbooks.yaml): how the entry is written: TYPE wording,
     date format, what goes in REF NO. Settings, not data, so its defaults are real.
-  - [`context/chart-of-accounts.yaml`](context/chart-of-accounts.yaml): what a rule may use. A rule
-    naming anything else fails when the files load.
+  - [`context/chart-of-accounts.yaml`](context/chart-of-accounts.yaml): what a rule may use. When it
+    lists any, a rule naming anything else fails when the files load.
 
   `--context DIR` is an **override folder**: each file in it replaces this Cog's default, and any
   file it doesn't have keeps the default. Real lookup data lives there, outside the repo, in
@@ -88,15 +91,16 @@ It **proposes**. A person checks the entries before anything reaches QuickBooks.
   root, then pass `--context private/context`. In `vendors.yaml`, an entry can be just a
   `name`, matched against the start of Brex's Merchant Name, or an `id` with regex `patterns`.
 
-  A coding rule or known-recurring entry for a vendor that isn't in the vendor list in use is
-  skipped, and the run warns about it. With no vendor list at all, merchants are identified by
-  Brex's Merchant Name, and Brex's category decides which are subscriptions.
+  Coding rules and known-recurring entries apply by vendor id, whether the id comes from the
+  vendor list or from Brex's Merchant Name. With no vendor list at all, merchants are identified
+  by Brex's Merchant Name, and Brex's category decides which are subscriptions. A `--context` that
+  is a file, a missing folder, or a folder with none of these files stops the run with an error.
 - **Frames** in `frames/`: Markdown org context, written for the model to read. Nothing reads them
   yet, because there is no model step yet.
   - [`frames/recurring-subscriptions.md`](frames/recurring-subscriptions.md): how recurring charges
     behave on the OpenTeams card.
-  - [`frames/coding-conventions.md`](frames/coding-conventions.md): what a QuickBooks coding is
-    here, and when not to propose one.
+  - [`frames/coding-conventions.md`](frames/coding-conventions.md): what goes in a QuickBooks
+    entry here, and where each field comes from.
 
 ## Running it
 
@@ -140,8 +144,10 @@ Brex's category, the earlier months it was charged, the known-recurring list, or
 
 - **Every transaction**, in the shared transaction shape (see below), with this Cog's inferred
   keys added: `vendor`, `recurrence` and `coding`.
-- **A run record**: mode (`strict` or `model`), the model binding, the versions of the context
-  files used, counts, and the abstention rate.
+- **A run record**: mode (`strict` or `model`), the model binding, the context files used (and
+  whether each was a default or an override), how many columns were read, the months the history
+  covers, counts (including blank QuickBooks fields and where vendors came from), and the share of
+  entries flagged for review.
 
 - **Expected but missing**: established vendors with no charge this month.
 - **Unmatched descriptors** and **unparsed rows**, with the reason each row couldn't be read.
@@ -176,14 +182,15 @@ kept apart from this Cog's own logic and are meant to be **copied** into that Co
 - `src/cog_transactions/`: reading the CSV into that shape (`load.py`), the shape's rules
   (`shape.py`), vendor identification (`vendors.py`), and merging exports and matching pending
   charges to posted ones (`combine.py`, not used by this Cog yet);
-- [`context/vendors.yaml`](context/vendors.yaml): the vendor patterns.
+- [`context/vendors.yaml`](context/vendors.yaml): the vendor list (empty by default).
 
 Each transaction has:
 - `id`;
 - `source`: the file and row it was read from;
-- `parsed`: only values read from the export, including `status` (`pending` or `posted`);
+- `parsed`: only values read from the export, including `status` (`pending`, `posted` or
+  `declined`);
 - `inferred`: everything worked out afterwards. Each value is an object naming its `source`:
-  `context`, `history`, `rule`, `match`, `model` or `none`.
+  `context`, `history`, `rule`, `match`, `export`, `model` or `none`.
 
 A field name can't appear in both `parsed` and `inferred`. The schema rejects it, and
 `shape.infer()` refuses to write it.
@@ -193,8 +200,9 @@ Recurrence and coding live in `src/auto_coder/` and are not shared.
 ## How it works
 
 1. **Load** the export into transactions.
-2. **Clean up vendor names** using the vendor patterns. Only the descriptor is used; the
-   memo is never read for decisions. Unmatched descriptors are listed and labelled `one-off`.
+2. **Identify the vendor**: the vendor list first, matched against Brex's Merchant Name and then
+   the descriptor; otherwise Brex's Merchant Name, with Brex's category deciding whether it's a
+   subscription. The memo is never read for decisions.
 3. **Label recurrence** from history. This step uses no model.
 4. **Write a QuickBooks entry** for each posted subscription charge, filling each field from a
    coding rule or the transaction, and leaving blank what nothing supplies. Pending charges wait.
@@ -262,5 +270,12 @@ are visible; filling them is accounting's job, or a coding rule's.
 - **Months are counted, not intervals.** "Charged in 2+ earlier months" doesn't check that the
   charges were evenly spaced.
 - **A merchant with no vendor-list entry and no Brex Merchant Name** is `one-off`.
+- **ACCOUNT trusts the Brex charge.** Without a coding rule, ACCOUNT is the account already on
+  the Brex charge. Whether accounting chose it or Brex filled it in is still an open question for
+  them. CLASS and DEPARTMENT are blank unless a rule supplies them: Brex doesn't have them.
+- **Three known gaps**, each with an `xfail` test that defines the fix:
+  - a subscription cancelled months ago is still reported as expected but missing;
+  - two identical charges on the same day are both entered, with no duplicate flag;
+  - a later month passed as history counts as evidence.
 - **No accuracy figures yet.** The tests check the fixtures' built-in cases. Accuracy against
-  accounting's real codings hasn't been measured, because we don't have them.
+  accounting's real entries hasn't been measured, because we don't have them.

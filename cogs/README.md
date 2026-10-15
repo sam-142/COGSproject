@@ -4,7 +4,7 @@
 
 ---
 
-each folder currently contains a COG.md file, a cog.yaml file, a skills folder, a frames folder, and a references folder. These COGS are to be build by referencing (but not bound by) the cogspec (SPEC.md) written by Trent Oliphant.
+Each Cog is a folder with a `COG.md` (what it does, for people), a `cog.yaml` manifest, a `pixi.toml` (its commands), its code in `src/`, its context in `context/` and `frames/`, and its tests and test data in `tests/` and `evaluation/`. These COGS are built by referencing (but not bound by) the cogspec (SPEC.md) written by Trent Oliphant.
 
 ---
 
@@ -20,15 +20,18 @@ Card transactions appear pending with a provisional amount and a descriptor that
 
 **Current Architecture:**
 
-
 Two independent Cogs, each its own pixi package. There is no shared parsing Cog: the part both need
-(reading transactions into one shape) lives in the auto-coder and gets **copied** into the
-chase-list builder unchanged.
+(reading Brex exports into one transaction shape) is **copied** between them unchanged, and the
+chase-list builder's tests fail if the copies differ.
 
 | Cog | Status |
 |---|---|
-| `recurring-subscription-auto-coder-cog` | a Cog (has its manifest): runs end to end on the synthetic CSVs, no model step yet |
-| `chase-list-builder-cog` | a Cog (has its manifest): drafts one message per charge from a template, no model step yet; reading replies not built |
+| `recurring-subscription-auto-coder-cog` | runs end to end, on synthetic data and on Brex's real export layout; writes the QuickBooks file; no model step; 96 tests (+3 known gaps marked `xfail`) |
+| `chase-list-builder-cog` | runs end to end the same way; drafts one message per charge from a template; reading replies not built; no model step; 76 tests |
+
+Neither Cog ships with real or invented data in its defaults: the lookup files in `context/` are
+empty. Real ones go in an override folder (`--context`) outside the repo; the invented ones the
+tests and demos use live in `sample-data/context/`.
 
 ---
 
@@ -37,66 +40,61 @@ chase-list builder unchanged.
 ```
 recurring-subscription-auto-coder-cog/
   COG.md              what the Cog does and doesn't do
-  cog.yaml            manifest: requirements, interfaces, where context lives
+  cog.yaml            manifest: interfaces, where context lives
   pixi.toml           environment + tasks (the Cog's commands)
   pyproject.toml      makes src/ installable
 
-  src/cog_transactions/   SHARED - copied unchanged into chase-list-builder-cog
+  src/cog_transactions/   SHARED - identical in both Cogs
+    load.py               Brex CSV -> transactions; keeps 22 of the 70 columns
     shape.py              the transaction shape and its rules
-    load.py               CSV -> transactions
-    vendors.py            merchant descriptor -> vendor
+    vendors.py            merchant -> vendor: the vendor list, else Brex's Merchant Name and Category
+    combine.py            merging exports, linking pending charges to posted ones
 
   src/auto_coder/         this Cog only
     cli.py                commands: code, check, use
     core.py               runs the steps in order, builds the run record
-    context.py            loads and cross-checks the YAML in context/
-    recurrence.py         labels each charge
-    coding.py             proposes QuickBooks codings
-    report.py             writes JSON, review CSV, terminal summary
+    context.py            loads context files; the override folder
+    recurrence.py         labels each charge, and records why it counts as a subscription
+    coding.py             builds the QuickBooks entry for each subscription charge
+    report.py             writes the QuickBooks file, the review CSV, the JSON, the summary
     model.py              model settings + one-token test (not used by the pipeline yet)
 
-  context/            data the code reads
-    vendors.yaml              SHARED - descriptor patterns -> vendor
-    known-recurring.yaml      vendors accounting knows recur
-    coding-rules.yaml         vendor -> account / class / department / entity
-    chart-of-accounts.yaml    what a rule is allowed to use
-    transaction.schema.json   SHARED - the transaction shape
+  context/
+    vendors.yaml              SHARED. Vendor list: empty by default
+    known-recurring.yaml      known recurring charges: empty by default
+    coding-rules.yaml         optional per-vendor overrides for PAYEE, ACCOUNT, CLASS, DEPARTMENT: empty
+    chart-of-accounts.yaml    what a rule may use: empty
+    quickbooks.yaml           how entries are written (TYPE wording, date format, REF NO.): settings
+    transaction.schema.json   SHARED. The transaction shape
     output-schema.json        the full output contract
     output-example.json       a short real output
 
   frames/             Markdown org context for the model (nothing reads it yet)
-    recurring-subscriptions.md
-    coding-conventions.md
-
-  evaluation/fixtures/   case folders copied from sample-data/: baseline, injection, malformed,
-                         subscription-changes, long-history, double-charge, history-order
-  tests/                 24 tests
+  evaluation/fixtures/   test cases copied from sample-data/, plus the invented context
+  tests/                 96 tests
 ```
-
-The four YAML files in `context/` are **empty defaults**: no invented data ships with the Cog. Real
-ones go in an override folder (`--context`), outside the repo. The invented versions used by the
-tests and `pixi run demo` live in `sample-data/context/`, copied into `evaluation/fixtures/context/`.
-Every run says which files are empty and what that means.
 
 **How a run flows:**
 
 ```
-CSV for the month + CSVs for earlier months
-  -> load        parsed: exactly what the CSV says
-  -> vendors     inferred.vendor       (from context/vendors.yaml)
-  -> recurrence  inferred.recurrence   (compared against earlier months)
-  -> coding      inferred.coding       (from context/coding-rules.yaml)
-  -> report      output/<name>.recurring.json
+Brex CSV for the month + Brex CSVs for earlier months
+  -> load        parsed: the 22 columns used, exactly as the export says
+  -> vendors     inferred.vendor       (vendor list, else Brex's Merchant Name + Category)
+  -> recurrence  inferred.recurrence   (label, why it's a subscription, amount flags)
+  -> coding      inferred.coding       (the QuickBooks entry, field by field)
+  -> report      output/<name>.quickbooks.csv
                  output/<name>.recurring-review.csv
+                 output/<name>.recurring.json
 ```
 
-Every transaction has a `parsed` object (read from the CSV) and an `inferred` object (worked out
+Every transaction has a `parsed` object (read from the export) and an `inferred` object (worked out
 afterwards, each value naming its source). A field can't be in both: the schema rejects it and the
 code refuses to write it.
 
-Recurrence labels: `recurring`, `likely-recurring`, `amount-changed`, `new`, `one-off`. A coding is
-proposed only for **posted** charges labelled `recurring` that have a coding rule. Everything else
-is left for a person, with the reason.
+Recurrence labels: `recurring`, `likely-recurring`, `amount-changed`, `new`, `one-off`. Every posted
+charge with one of the first four labels becomes a QuickBooks entry; the last three are also
+flagged for review. Usage-billed vendors (the default) may vary in amount; a change over ±10% is
+flagged, not blocked. Fixed-price vendors send a change to a person.
 
 **The QuickBooks file** (`output/<month file name>.quickbooks.csv`)
 
@@ -154,10 +152,14 @@ Every subscription charge, with what to check. Columns, in order:
 **Running it** (from `cogs/recurring-subscription-auto-coder-cog/`):
 
 ```
-pixi run demo                                            # on the synthetic fixtures
-pixi run code sept.csv --history jul.csv aug.csv         # on your own files
+pixi run demo                                            # synthetic data and synthetic context
+pixi run code sept.csv --history jul.csv aug.csv         # your own files
+pixi run code sept.csv --history jul.csv aug.csv --context <folder>   # with real context files
 pixi run test
 ```
+
+`--history` takes several files, or repeat the flag. The summary starts by saying which months the
+history covers. For real data, see the root `README.md`: everything stays in `private/`.
 
 ---
 
@@ -180,17 +182,16 @@ chase-list-builder-cog/
     report.py             writes JSON, chase-list CSV, drafts for review
 
   context/
-    cards.yaml                card -> channel, cardholder, users (empty by default)
-    chase-policy.yaml         what's chased, what each message asks (placeholder)
+    cards.yaml                card -> channel, cardholder, users: empty by default
+    chase-policy.yaml         what's chased, what each message asks (placeholder settings)
     message-template.md       the wording of every message; editable, see context/README.md
-    vendors.yaml              SHARED
+    vendors.yaml              SHARED. Empty by default
     transaction.schema.json   SHARED
     output-schema.json, output-example.json
 
   frames/chasing.md       how chasing works at OpenTeams, for a model (nothing reads it yet)
-  evaluation/fixtures/    case folders copied from sample-data/: baseline, three-day-exports,
-                          injection, malformed, routing, receipts, matching, slack-safety
-  tests/                  29 tests, including a check that the shared copies match
+  evaluation/fixtures/    test cases copied from sample-data/, plus the invented cards and vendors
+  tests/                  76 tests, including checks that the shared copies match
 ```
 
 **How a run flows, and where a person approves:**
@@ -217,9 +218,9 @@ reappears as posted with a different amount.
 **Running it** (from `cogs/chase-list-builder-cog/`):
 
 ```
-pixi run draft export.csv [more.csv ...] --coded <auto-coder .recurring.json>
+pixi run draft export.csv [more.csv ...] --coded <auto-coder .recurring.json> [--context <folder>]
 pixi run sent output/chase_<from>_to_<to>.chase.json
-pixi run demo
+pixi run demo                    # synthetic data and synthetic cards
 pixi run test
 ```
 
@@ -229,10 +230,10 @@ pixi run test
 
 Copied unchanged between the two Cogs:
 
-- `src/cog_transactions/`: `shape.py`, `load.py`, `vendors.py`, and `combine.py` (merging
-  exports, linking pending charges to posted ones)
+- `src/cog_transactions/`: `load.py` (reading and trimming Brex exports), `shape.py`, `vendors.py`,
+  and `combine.py` (merging exports, linking pending charges to posted ones)
 - `context/transaction.schema.json`
-- `context/vendors.yaml`
+- `context/vendors.yaml` (empty by default)
 - `evaluation/fixtures/injection/`
 
 Change them in one Cog, then copy them to the other. The chase-list builder's tests fail if any
@@ -242,6 +243,8 @@ shared file differs from the auto-coder's copy.
 
 **Not built yet**
 
-- Model steps in both Cogs (left until last; where the model runs is undecided)
 - Chase-list builder: reading replies back into the transactions
-- Accuracy for both Cogs (needs real data)
+- Evaluation for both Cogs (needs accounting's real decisions to compare against)
+- Model steps in both Cogs (left until last; where the model runs is undecided)
+
+See `ROADMAP.md` for the full list.

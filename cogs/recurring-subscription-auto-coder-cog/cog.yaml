@@ -46,11 +46,15 @@ context:
   output_schema: context/output-schema.json
   output_example: context/output-example.json
   transaction_schema: context/transaction.schema.json
+  # Empty by default: real ones come from an override folder (--context).
   lookup:
     - context/vendors.yaml
     - context/known-recurring.yaml
     - context/coding-rules.yaml
     - context/chart-of-accounts.yaml
+  # How QuickBooks entries are written. Settings, so the defaults are real.
+  settings:
+    - context/quickbooks.yaml
 
 # Markdown context for a model. Nothing reads these until the model step exists.
 frames:

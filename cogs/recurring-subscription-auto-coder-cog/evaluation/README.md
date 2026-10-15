@@ -8,9 +8,11 @@ copy drifts from `sample-data/`.
 
 | Folder | What it tests |
 |---|---|
+| `context/` | the **invented** vendors, coding rules, chart of accounts and known-recurring list the tests and demo run on. The Cog's own defaults are empty |
 | `baseline/` | a realistic September 2026, with July and August as history; the demo runs on it |
 | `injection/` | text that reads like instructions, in the descriptor, memo and cardholder fields |
-| `malformed/` | bad rows, a missing column, an empty export, an Excel-style file |
+| `malformed/` | bad rows, a missing column, only the required columns, an empty export, an Excel-style file |
+| `declined/` | a declined charge next to a normal one |
 | `subscription-changes/` | price rises inside and outside ±10%, a downgrade, usage drift, a card move |
 | `long-history/` | six months of history; a subscription cancelled months ago, one stopped last month |
 | `double-charge/` | the same subscription charged twice on one day |

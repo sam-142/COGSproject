@@ -40,9 +40,12 @@ context:
   output_example: context/output-example.json
   transaction_schema: context/transaction.schema.json
   message_template: context/message-template.md
+  # Empty by default: real ones come from an override folder (--context).
   lookup:
     - context/vendors.yaml
     - context/cards.yaml
+  # Which charges are chased and what each message asks.
+  settings:
     - context/chase-policy.yaml
 
 # Markdown context for a model. Nothing reads it until a model step exists.

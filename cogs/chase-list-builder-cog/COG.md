@@ -30,9 +30,9 @@ to ask, and drafts the message. A person reads the drafts and sends the ones the
 
 - Reading **any number of CSV exports of any length**: daily, every few days, monthly, or
   overlapping. Rows that appear in more than one export are counted once.
-- Recognising a pending charge that has since posted, and treating the two as one charge. The link
-  comes from the export when it gives one; otherwise it is matched on card, merchant and date, and
-  marked as inferred.
+- Recognising a pending charge that has since posted, and treating the two as one charge. Brex's
+  export has no link between them, so they are matched on card, merchant and date, and the match
+  is marked as inferred and flagged for checking.
 - Deciding which charges to chase, from [`context/chase-policy.yaml`](context/chase-policy.yaml).
   Pending charges are chased straight away, without waiting for them to settle.
 - Routing each charge to its card's channel, from [`context/cards.yaml`](context/cards.yaml).
@@ -40,7 +40,8 @@ to ask, and drafts the message. A person reads the drafts and sends the ones the
   [`context/message-template.md`](context/message-template.md). Each message ends with a fill-in
   reply form, so replies can be read back in later.
 - Remembering which charges have been chased, so none is chased twice.
-- Skipping charges the auto-coder has already coded, if its output is passed in.
+- Skipping subscription charges the auto-coder entered for QuickBooks with nothing to check, if
+  its output is passed in.
 
 ## Unsupported work
 
@@ -119,8 +120,8 @@ A person decides at each of these points; the Cog never decides for them:
    A draft that was thrown away comes back next run; one that was sent doesn't.
 3. **Routing unknown cards.** A charge on a card that isn't in `cards.yaml` is drafted with no
    channel and marked `needs-routing`.
-4. **Checking inferred matches.** When a posted charge is linked to a pending one by matching
-   rather than by the export, the run warns and names it.
+4. **Checking inferred matches.** Every time a posted charge is matched to a pending one, the
+   run warns and names it.
 5. **Keeping the context current.** Cards, channels, users, the policy and the template are edited
    by people.
 
@@ -150,7 +151,7 @@ Chase decisions:
 | `draft` | a message was drafted |
 | `needs-routing` | a message was drafted, but the card has no channel; a person picks one |
 | `already-chased` | this charge, or the pending charge it replaced, was sent before |
-| `skip` | a refund, already coded by the auto-coder, or excluded by the policy |
+| `skip` | a refund, a declined charge, a subscription the auto-coder entered with nothing to check, or excluded by the policy |
 
 ## Completion criteria
 
@@ -174,7 +175,7 @@ Chase decisions:
   charges in the sample month.
 - **One message per charge.** A person with five charges gets five messages.
 - **Matching pending to posted is a judgement.** It needs the same card, the same vendor (or the
-  same start to the descriptor), and transaction dates at most 3 days apart. Two visits to the same
+  same start to Brex's Merchant Name), and transaction dates at most 3 days apart. Two visits to the same
   place within 3 days on one card could be confused. Every match is flagged for checking.
 - **The chase log is a local file.** Two people running the Cog with separate logs will chase the
   same charges.
