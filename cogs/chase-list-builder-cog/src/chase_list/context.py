@@ -107,6 +107,8 @@ def load(override_dir=None, template_path=None):
             "skip_refunds": bool(policy.get("skip_refunds", True)),
             "skip_coded_by_auto_coder": bool(policy.get("skip_coded_by_auto_coder", True)),
             "skip_when_receipt_and_memo": bool(policy.get("skip_when_receipt_and_memo", False)),
+            "skip_when_memo": bool(policy.get("skip_when_memo", True)),
+            "subscription_memo_marker": str(policy.get("subscription_memo_marker") or ""),
             "ask_for": ask_for,
         },
         "template": load_template(template_path),

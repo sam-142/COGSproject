@@ -24,13 +24,12 @@ One folder per case. Each has its CSVs and a README saying what it tests and wha
 | [`routing/`](routing/) | chase-list | charges on an unknown card and with no card number |
 | [`receipts/`](receipts/) | chase-list | every combination of receipt attached and memo filled in |
 | [`declined/`](declined/) | both | a declined charge next to a normal one |
+| [`after-auto-coder/`](after-auto-coder/) | chase-list | the auto-coder's updated statement: only charges with no memo are chased |
 | [`matching/`](matching/) | chase-list | two visits to the same place, a hold that never posts, the same merchant on another card |
 | [`slack-safety/`](slack-safety/) | chase-list | descriptors and names that would ping a channel or break formatting |
 
-**Known gaps.** Three auto-coder cases describe behaviour that is wrong today: `long-history`
-(a cancelled subscription is reported missing forever), `double-charge` (both charges are coded) and
-`history-order` (the later month counts as evidence). Their tests are marked as expected failures,
-and start failing loudly once the gap is fixed, so the mark gets removed.
+**Formerly known gaps.** `long-history`, `double-charge` and `history-order` each described something
+the auto-coder got wrong; all three are now fixed, and their tests are ordinary tests.
 
 ## How the Cogs use these
 

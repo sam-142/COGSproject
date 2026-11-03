@@ -144,7 +144,9 @@ def test_no_coding_rule_doesnt_block_the_entry(result):
     assert c["status"] == "ready" and c["review"] is None
     # Brex's fully qualified account name, as QuickBooks names it.
     assert (c["entry"]["ACCOUNT"], c["from"]["ACCOUNT"]) == ("Expenses:6110 Software Subscriptions", "export")
-    assert c["blank"] == ["MEMO", "CLASS", "DEPARTMENT"]
+    assert c["blank"] == ["CLASS", "DEPARTMENT"]
+    assert c["entry"]["MEMO"] == "POSTMAN INC Paid by OT, Serving Engineering OT"
+    assert c["from"]["MEMO"] == "template"
 
 
 def test_review_rate_counts_flagged_entries(result):

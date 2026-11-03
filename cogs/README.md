@@ -26,8 +26,12 @@ chase-list builder's tests fail if the copies differ.
 
 | Cog | Status |
 |---|---|
-| `recurring-subscription-auto-coder-cog` | runs end to end, on synthetic data and on Brex's real export layout; writes the QuickBooks file; no model step; 96 tests (+3 known gaps marked `xfail`) |
+| `recurring-subscription-auto-coder-cog` | runs end to end, on synthetic data and on Brex's real export layout; writes the updated statement (subscription memos filled in) and a review report; no model step; 111 tests |
 | `chase-list-builder-cog` | runs end to end the same way; drafts one message per charge from a template; reading replies not built; no model step; 76 tests |
+
+The web page for the accounting team is **not part of either Cog**: it lives in `app/` at the repo
+root and runs both Cogs through their pixi tasks (`code`, then `draft`), so no web code lives in a
+Cog. See `app/README.md`.
 
 Neither Cog ships with real or invented data in its defaults: the lookup files in `context/` are
 empty. Real ones go in an override folder (`--context`) outside the repo; the invented ones the
@@ -56,7 +60,7 @@ recurring-subscription-auto-coder-cog/
     context.py            loads context files; the override folder
     recurrence.py         labels each charge, and records why it counts as a subscription
     coding.py             builds the QuickBooks entry for each subscription charge
-    report.py             writes the QuickBooks file, the review CSV, the JSON, the summary
+    report.py             writes the upload file, the QuickBooks file, the review CSV, the JSON, the summary
     model.py              model settings + one-token test (not used by the pipeline yet)
 
   context/
@@ -71,7 +75,7 @@ recurring-subscription-auto-coder-cog/
 
   frames/             Markdown org context for the model (nothing reads it yet)
   evaluation/fixtures/   test cases copied from sample-data/, plus the invented context
-  tests/                 96 tests
+  tests/                 111 tests
 ```
 
 **How a run flows:**
@@ -82,7 +86,8 @@ Brex CSV for the month + Brex CSVs for earlier months
   -> vendors     inferred.vendor       (vendor list, else Brex's Merchant Name + Category)
   -> recurrence  inferred.recurrence   (label, why it's a subscription, amount flags)
   -> coding      inferred.coding       (the QuickBooks entry, field by field)
-  -> report      output/<name>.quickbooks.csv
+  -> report      output/<name>.upload.csv           the Brex CSV + subscription memos: what gets uploaded
+                 output/<name>.quickbooks.csv
                  output/<name>.recurring-review.csv
                  output/<name>.recurring.json
 ```
@@ -95,6 +100,22 @@ Recurrence labels: `recurring`, `likely-recurring`, `amount-changed`, `new`, `on
 charge with one of the first four labels becomes a QuickBooks entry; the last three are also
 flagged for review. Usage-billed vendors (the default) may vary in amount; a change over ±10% is
 flagged, not blocked. Fixed-price vendors send a change to a person.
+
+**The upload file** (`output/<month file name>.upload.csv`)
+
+What accounting uploads to QuickBooks: the original Brex CSV, every row and all 70 columns,
+with the **Memo** filled in on each posted subscription charge. It replaces their manual loop of
+copying subscriptions into the OT Vendor Subscription List and pasting the generated memo back. The
+memo reproduces the spreadsheet's formula:
+
+```
+{statement_descriptor} Paid by OT, Serving {department} OT      (template in quickbooks.yaml)
+GITHUB.COM 4ZK8M Paid by OT, Serving Engineering OT
+```
+
+A memo already in the export is never overwritten. Other rows (one-offs, pending, declined) are left
+exactly as exported; filling their memos is the chase-list builder's job, from people's replies.
+Because this file keeps every column, it belongs with the export, in `private/`.
 
 **The QuickBooks file** (`output/<month file name>.quickbooks.csv`)
 
@@ -112,7 +133,7 @@ DATE,REF NO.,TYPE,PAYEE,ACCOUNT,MEMO,CLASS,DEPARTMENT,CHARGE
 | TYPE | `Credit Card Expense` (`Credit Card Credit` for a credit); wording set in `quickbooks.yaml` |
 | PAYEE | a coding rule, else Brex `Integration Vendor`, else Brex `Merchant Name` |
 | ACCOUNT | a coding rule, else the account already on the Brex charge, by its fully qualified name (`Integration Debit Line Category Fully Qualified Name`) |
-| MEMO | Brex `Memo` |
+| MEMO | Brex `Memo` if there is one, else the subscription memo |
 | CLASS | a coding rule, else Brex `Integration Class` |
 | DEPARTMENT | a coding rule, else Brex `Integration Department` |
 | CHARGE | the amount |
@@ -130,24 +151,26 @@ Every subscription charge, with what to check. Columns, in order:
 | 1 | `label` | `amount-changed`, `new`, `likely-recurring` or `recurring` |
 | 2 | `quickbooks` | `ready` (in the QuickBooks file) or `waiting-for-post` (pending) |
 | 3 | `review` | what a person should check, if anything: a new vendor, one month of history, an amount that moved |
-| 4 | `vendor` | vendor id: from the vendor list, or made from Brex's Merchant Name |
-| 5 | `merchant_name` | Brex `Merchant Name` |
-| 6 | `merchant_descriptor` | Brex `Statement Descriptor` |
-| 7 | `amount` | two decimals |
-| 8 | `currency` | e.g. `USD` |
-| 9 | `change_vs_last` | e.g. `+34.6% vs 520.00 (2026-08)` |
-| 10 | `transaction_date` | `YYYY-MM-DD` |
-| 11 | `status` | `posted` or `pending` |
-| 12 | `card_last4` | Brex `Last 4` |
-| 13 | `cardholder` | Brex `User` |
-| 14 | `account` | the entry's ACCOUNT |
-| 15 | `account_from` | `rule` or `export` (the Brex charge) |
-| 16 | `class` | the entry's CLASS |
-| 17 | `department` | the entry's DEPARTMENT |
-| 18 | `blank_fields` | which QuickBooks fields are blank, e.g. `MEMO CLASS DEPARTMENT` |
-| 19 | `months_seen` | earlier months the vendor was charged |
-| 20 | `reason` | **why it counts as a subscription**: every piece of evidence that applies, joined with `; `. Any of: on the vendor list as a subscription (with its billing); Brex category; on the known-recurring list; charged in N earlier months (naming them); same amount (±10%) in N earlier months (fixed-price only). E.g. `Brex category: Recurring software & SaaS; charged in 2 earlier months (2026-07, 2026-08)` |
-| 21 | `transaction_id` | Brex `Id`; ties the row to the QuickBooks file and the JSON |
+| 4 | `memo` | the memo this charge gets in the updated statement: calculated from the subscription memo formula, or the one already on the charge; blank while pending |
+| 5 | `memo_from` | `template` (calculated from the formula) or `export` (already on the Brex charge, kept) |
+| 6 | `vendor` | vendor id: from the vendor list, or made from Brex's Merchant Name |
+| 7 | `merchant_name` | Brex `Merchant Name` |
+| 8 | `merchant_descriptor` | Brex `Statement Descriptor` |
+| 9 | `amount` | two decimals |
+| 10 | `currency` | e.g. `USD` |
+| 11 | `change_vs_last` | e.g. `+34.6% vs 520.00 (2026-08)` |
+| 12 | `transaction_date` | `YYYY-MM-DD` |
+| 13 | `status` | `posted` or `pending` |
+| 14 | `card_last4` | Brex `Last 4` |
+| 15 | `cardholder` | Brex `User` |
+| 16 | `account` | the entry's ACCOUNT |
+| 17 | `account_from` | `rule` or `export` (the Brex charge) |
+| 18 | `class` | the entry's CLASS |
+| 19 | `department` | the entry's DEPARTMENT |
+| 20 | `blank_fields` | which QuickBooks fields are blank, e.g. `MEMO CLASS DEPARTMENT` |
+| 21 | `months_seen` | earlier months the vendor was charged |
+| 22 | `reason` | **why it counts as a subscription**: every piece of evidence that applies, joined with `; `. Any of: on the vendor list as a subscription (with its billing); Brex category; on the known-recurring list; charged in N earlier months (naming them); same amount (±10%) in N earlier months (fixed-price only). E.g. `Brex category: Recurring software & SaaS; charged in 2 earlier months (2026-07, 2026-08)` |
+| 23 | `transaction_id` | Brex `Id`; ties the row to the QuickBooks file and the JSON |
 
 **Running it** (from `cogs/recurring-subscription-auto-coder-cog/`):
 
@@ -191,10 +214,13 @@ chase-list-builder-cog/
 
   frames/chasing.md       how chasing works at OpenTeams, for a model (nothing reads it yet)
   evaluation/fixtures/    test cases copied from sample-data/, plus the invented cards and vendors
-  tests/                  76 tests, including checks that the shared copies match
+  tests/                  85 tests, including checks that the shared copies match
 ```
 
 **How a run flows, and where a person approves:**
+
+The input is normally the auto-coder's updated statement (`.upload.csv`): every subscription there
+already has its memo, so the charges still without one are the ones to chase.
 
 ```
 exports (any number, any length, may overlap)
@@ -203,6 +229,7 @@ exports (any number, any length, may overlap)
   -> link pending charges to the posted charges that replaced them
   -> route to the card's channel        (context/cards.yaml)
   -> decide: draft / needs-routing / already-chased / skip
+            (skip: has a memo, a pending subscription charge, a refund, declined, already sent)
   -> fill the template for each charge  (context/message-template.md)
   -> output/chase_<from>_to_<to>.chase.json, .chase-list.csv, .drafts.md
        |
@@ -218,7 +245,7 @@ reappears as posted with a different amount.
 **Running it** (from `cogs/chase-list-builder-cog/`):
 
 ```
-pixi run draft export.csv [more.csv ...] --coded <auto-coder .recurring.json> [--context <folder>]
+pixi run draft <month>.upload.csv [more.csv ...] [--context <folder>]   # the auto-coder's updated statement
 pixi run sent output/chase_<from>_to_<to>.chase.json
 pixi run demo                    # synthetic data and synthetic cards
 pixi run test

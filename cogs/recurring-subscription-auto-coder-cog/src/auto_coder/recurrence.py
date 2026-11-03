@@ -4,7 +4,9 @@ No model. A charge is compared with the same vendor's charges in earlier months.
 
     subscription       a vendor whose category is `subscription`, from the vendor
                        list or, for merchants not on it, from Brex's category
-    established        on the known-recurring list, or charged in 2+ earlier months
+    established        on the known-recurring list, or charged in EACH of the two
+                       months just before the charge's month (July and August for
+                       a September charge), not just any two earlier months
 
     recurring          established, and either
                          - usage-billed: the amount is allowed to vary; a big
@@ -13,7 +15,8 @@ No model. A charge is compared with the same vendor's charges in earlier months.
                            earlier charges, or of the known amount
     amount-changed     established, fixed-price, and no earlier charge is within
                        tolerance: a price rise, added seats, a downgrade
-    likely-recurring   charged in exactly 1 earlier month (usage-billed, or at a
+    likely-recurring   charged in earlier months, but not in each of the last
+                       two; or in exactly 1 earlier month (usage-billed, or at a
                        matching amount); or no history was supplied at all, so
                        the vendor list or Brex is the only evidence
     new                a subscription vendor not seen in the history supplied
@@ -26,8 +29,13 @@ person, rather than missing them.
 
 Fixed-price amounts are matched charge by charge, not per vendor, so a vendor
 with two separate subscriptions (two AWS accounts) is two streams rather than one
-that keeps changing price. Months are counted, not days: with a monthly export,
-"charged in consecutive months" is what monthly means.
+that keeps changing price. Months are calendar months: with monthly exports,
+"charged in consecutive months" is what monthly means, and day-to-day drift in
+billing dates doesn't matter.
+
+Only history from months before a charge's own month counts. A second posted
+charge from the same vendor for the same amount within 3 days is marked as a
+possible duplicate (`duplicate_of`); it is still labelled, and flagged for review.
 """
 from collections import defaultdict
 
@@ -39,6 +47,42 @@ TOLERANCE = 0.10  # ±10%, the default agreed for v0.0.1; see COG.md
 def _month(tx):
     d = tx["parsed"]["transaction_date"]
     return f"{d.year:04d}-{d.month:02d}"
+
+
+def _shift(month, n):
+    """'2026-09', -1 -> '2026-08'."""
+    y, m = map(int, month.split("-"))
+    y, m = divmod(y * 12 + (m - 1) + n, 12)
+    return f"{y:04d}-{m + 1:02d}"
+
+
+def _streak(months, month):
+    """How many months in a row, ending the month before `month`, have a charge."""
+    n = 0
+    while _shift(month, -(n + 1)) in months:
+        n += 1
+    return n
+
+
+DUPLICATE_WINDOW_DAYS = 3
+
+
+def _duplicates(transactions):
+    """Posted charge id -> (id, date) of an earlier posted charge from the same
+    vendor, for the same amount, at most DUPLICATE_WINDOW_DAYS before it."""
+    groups = defaultdict(list)
+    for tx in transactions:
+        vid = tx["inferred"]["vendor"]["id"]
+        if vid and tx["parsed"]["status"] == "posted":
+            groups[(vid, tx["parsed"]["amount"])].append(tx)
+    found = {}
+    for txs in groups.values():
+        txs.sort(key=lambda t: (t["parsed"]["transaction_date"], t["id"]))
+        for earlier, later in zip(txs, txs[1:]):
+            gap = (later["parsed"]["transaction_date"] - earlier["parsed"]["transaction_date"]).days
+            if gap <= DUPLICATE_WINDOW_DAYS:
+                found[later["id"]] = (earlier["id"], earlier["parsed"]["transaction_date"].isoformat())
+    return found
 
 
 def _within(amount, reference):
@@ -67,7 +111,7 @@ def _describe(change):
     return f"{'up' if pct > 0 else 'down'} {abs(pct):g}% on last charge ({change['last_amount']:.2f})"
 
 
-def _why_subscription(tx, prior_months, matching_months, known_entry, usage, categories):
+def _why_subscription(tx, prior_months, streak, matching_months, known_entry, usage, categories):
     """Every piece of evidence that this charge is a subscription. Any combination
     can apply; the review CSV shows them all."""
     vendor, p = tx["inferred"]["vendor"], tx["parsed"]
@@ -79,9 +123,13 @@ def _why_subscription(tx, prior_months, matching_months, known_entry, usage, cat
         why.append(f"Brex category: {p['brex_category']}")
     if known_entry is not None:
         why.append("on the known-recurring list")
-    if prior_months:
+    if streak >= 2:
+        run = prior_months[-streak:]
+        why.append(f"charged in each of the last {streak} months ({', '.join(run)})")
+    elif prior_months:
         n = len(prior_months)
-        why.append(f"charged in {n} earlier month{'s' if n != 1 else ''} ({', '.join(prior_months)})")
+        gaps = ", not in consecutive months" if n >= 2 else ""
+        why.append(f"charged in {n} earlier month{'s' if n != 1 else ''} ({', '.join(prior_months)}){gaps}")
     if not usage and matching_months:
         n = len(matching_months)
         why.append(f"same amount (±10%) in {n} earlier month{'s' if n != 1 else ''}")
@@ -103,13 +151,16 @@ def label(transactions, history, ctx, history_supplied=True):
         if vid and tx["parsed"]["status"] == "posted" and tx["id"] not in current_ids:
             by_vendor[vid].append(tx)
 
+    duplicates = _duplicates(transactions)
     for tx in transactions:
         vendor = tx["inferred"]["vendor"]
         vid = vendor["id"]
         amount = tx["parsed"]["amount"]
         usage = vendor.get("billing") != "fixed"
-        prior = by_vendor.get(vid, [])
+        this_month = _month(tx)
+        prior = [p for p in by_vendor.get(vid, []) if _month(p) < this_month]
         prior_months = sorted({_month(p) for p in prior})
+        streak = _streak(set(prior_months), this_month)
         matching = [p for p in prior if _within(amount, p["parsed"]["amount"])]
         matching_months = sorted({_month(p) for p in matching})
         change = _change(amount, prior)
@@ -120,7 +171,7 @@ def label(transactions, history, ctx, history_supplied=True):
         known_amount_ok = (known_entry is not None
                            and (known_entry["amount"] is None
                                 or _within(amount, float(known_entry["amount"]))))
-        established = known_entry is not None or len(prior_months) >= 2
+        established = known_entry is not None or streak >= 2
         source = "history"
         flag = None
 
@@ -139,10 +190,10 @@ def label(transactions, history, ctx, history_supplied=True):
             result, reason = "recurring", "established vendor; pending, so amount not compared yet"
         elif established and usage:
             result = "recurring"
-            if known_entry is not None and not prior:
+            if known_entry is not None and streak < 2:
                 reason, source = "on the known-recurring list", "context"
             else:
-                reason = f"usage-billed; charged in {len(prior_months)} earlier months"
+                reason = f"usage-billed; charged in each of the last {streak} months"
             if changed:
                 flag = f"amount {_describe(change)}"
                 reason += f"; {flag}"
@@ -155,8 +206,11 @@ def label(transactions, history, ctx, history_supplied=True):
                 result, reason = "likely-recurring", "fixed price; amount matches only 1 earlier month"
             else:
                 result, reason = "amount-changed", f"fixed price; amount {_describe(change) or 'differs from every earlier charge'}"
+        elif len(prior_months) >= 2:
+            result, reason = ("likely-recurring",
+                              f"charged in {', '.join(prior_months)}, but not in each of the last 2 months")
         elif prior and (usage or matching_months):
-            result, reason = "likely-recurring", "charged in 1 earlier month"
+            result, reason = "likely-recurring", f"charged in 1 earlier month ({prior_months[0]})"
         elif prior:
             result, reason = "one-off", "fixed price; seen before, but never at this amount"
         elif not history_supplied:
@@ -173,13 +227,17 @@ def label(transactions, history, ctx, history_supplied=True):
             "source": source,
             "billing": "fixed" if not usage else "usage",
             "amount_flag": flag,
+            "duplicate_of": duplicates.get(tx["id"], (None,))[0],
             # Why it counts as a subscription; empty for one-offs.
             "why_subscription": ([] if result == "one-off" else
-                                 _why_subscription(tx, prior_months, matching_months,
+                                 _why_subscription(tx, prior_months, streak, matching_months,
                                                    known_entry, usage, categories)),
             "evidence": {
                 "known_recurring": known_entry is not None,
                 "months_seen": prior_months,
+                "consecutive_months": streak,
+                "duplicate": ({"of": duplicates[tx["id"]][0], "date": duplicates[tx["id"]][1]}
+                              if tx["id"] in duplicates else None),
                 "months_matching_amount": matching_months,
                 "earlier_amounts": sorted({p["parsed"]["amount"] for p in prior}),
                 "vs_last_charge": change,
@@ -189,10 +247,13 @@ def label(transactions, history, ctx, history_supplied=True):
     # Established vendors that didn't charge at all this period. Pending
     # charges count as charging: the money is on its way.
     charged = {tx["inferred"]["vendor"]["id"] for tx in transactions}
-    # Subscriptions by the vendor list or, for merchants not on it, by Brex.
+    # Subscriptions (by the vendor list or, for merchants not on it, by Brex)
+    # charged in each of the two months before this period: a vendor that
+    # stopped earlier than that isn't expected any more.
+    first = min((_month(tx) for tx in transactions), default=None)
     candidates = set(known) | {v for v, txs in by_vendor.items()
-                               if any(t["inferred"]["vendor"]["category"] == "subscription" for t in txs)
-                               and len({_month(t) for t in txs}) >= 2}
+                               if first and any(t["inferred"]["vendor"]["category"] == "subscription" for t in txs)
+                               and _streak({_month(t) for t in txs}, first) >= 2}
     missing = []
     for vid in sorted(candidates - charged):
         prior = by_vendor.get(vid, [])

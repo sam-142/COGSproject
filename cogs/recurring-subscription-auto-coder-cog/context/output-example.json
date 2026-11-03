@@ -3,7 +3,7 @@
     "cog": "recurring-subscription-auto-coder-cog",
     "version": "0.0.1",
     "transaction_shape": "0.2.0",
-    "at": "2026-10-14T12:00:00+00:00",
+    "at": "2026-10-21T12:00:00+00:00",
     "mode": "strict",
     "binding": null,
     "inputs": {
@@ -98,8 +98,7 @@
       },
       "blank_fields": {
         "CLASS": 3,
-        "DEPARTMENT": 3,
-        "MEMO": 31
+        "DEPARTMENT": 3
       }
     },
     "abstention_rate": 0.094,
@@ -148,14 +147,15 @@
         },
         "recurrence": {
           "label": "recurring",
-          "reason": "usage-billed; charged in 2 earlier months",
+          "reason": "usage-billed; charged in each of the last 2 months",
           "source": "history",
           "billing": "usage",
           "amount_flag": null,
+          "duplicate_of": null,
           "why_subscription": [
             "on the vendor list as a subscription, usage billing",
             "Brex category: Recurring software & SaaS",
-            "charged in 2 earlier months (2026-07, 2026-08)"
+            "charged in each of the last 2 months (2026-07, 2026-08)"
           ],
           "evidence": {
             "known_recurring": false,
@@ -163,6 +163,8 @@
               "2026-07",
               "2026-08"
             ],
+            "consecutive_months": 2,
+            "duplicate": null,
             "months_matching_amount": [
               "2026-07",
               "2026-08"
@@ -187,7 +189,7 @@
             "TYPE": "Credit Card Expense",
             "PAYEE": "Datadog",
             "ACCOUNT": "6120",
-            "MEMO": "",
+            "MEMO": "DATADOG INC Paid by OT, Serving Engineering OT",
             "CLASS": "Engineering",
             "DEPARTMENT": "Engineering",
             "CHARGE": "611.42"
@@ -198,14 +200,12 @@
             "TYPE": "context",
             "PAYEE": "export",
             "ACCOUNT": "rule",
-            "MEMO": "none",
+            "MEMO": "template",
             "CLASS": "rule",
             "DEPARTMENT": "rule",
             "CHARGE": "export"
           },
-          "blank": [
-            "MEMO"
-          ],
+          "blank": [],
           "review": null
         }
       }
@@ -254,10 +254,13 @@
           "source": "history",
           "billing": "usage",
           "amount_flag": null,
+          "duplicate_of": null,
           "why_subscription": [],
           "evidence": {
             "known_recurring": false,
             "months_seen": [],
+            "consecutive_months": 0,
+            "duplicate": null,
             "months_matching_amount": [],
             "earlier_amounts": [],
             "vs_last_charge": null
@@ -314,11 +317,12 @@
           "source": "history",
           "billing": "fixed",
           "amount_flag": null,
+          "duplicate_of": null,
           "why_subscription": [
             "on the vendor list as a subscription, fixed billing",
             "Brex category: Recurring software & SaaS",
             "on the known-recurring list",
-            "charged in 2 earlier months (2026-07, 2026-08)"
+            "charged in each of the last 2 months (2026-07, 2026-08)"
           ],
           "evidence": {
             "known_recurring": true,
@@ -326,6 +330,8 @@
               "2026-07",
               "2026-08"
             ],
+            "consecutive_months": 2,
+            "duplicate": null,
             "months_matching_amount": [],
             "earlier_amounts": [
               1068.75
@@ -346,7 +352,7 @@
             "TYPE": "Credit Card Expense",
             "PAYEE": "Slack",
             "ACCOUNT": "6110",
-            "MEMO": "",
+            "MEMO": "SLACK T03AB9XYZ Paid by OT, Serving Executive OT",
             "CLASS": "G&A",
             "DEPARTMENT": "Operations",
             "CHARGE": "142.50"
@@ -357,14 +363,12 @@
             "TYPE": "context",
             "PAYEE": "export",
             "ACCOUNT": "rule",
-            "MEMO": "none",
+            "MEMO": "template",
             "CLASS": "rule",
             "DEPARTMENT": "rule",
             "CHARGE": "export"
           },
-          "blank": [
-            "MEMO"
-          ],
+          "blank": [],
           "review": "amount-changed: fixed price; amount down 86.7% on last charge (1068.75)"
         }
       }
@@ -413,10 +417,11 @@
           "source": "history",
           "billing": "usage",
           "amount_flag": null,
+          "duplicate_of": null,
           "why_subscription": [
             "on the vendor list as a subscription, usage billing",
             "Brex category: Recurring software & SaaS",
-            "charged in 2 earlier months (2026-07, 2026-08)"
+            "charged in each of the last 2 months (2026-07, 2026-08)"
           ],
           "evidence": {
             "known_recurring": false,
@@ -424,6 +429,8 @@
               "2026-07",
               "2026-08"
             ],
+            "consecutive_months": 2,
+            "duplicate": null,
             "months_matching_amount": [],
             "earlier_amounts": [
               398.42,

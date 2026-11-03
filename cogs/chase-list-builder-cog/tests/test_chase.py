@@ -117,7 +117,9 @@ def test_auto_coder_output_skips_what_it_coded(tmp_path):
     result = core.run([MONTH], coded_path=coded)
     assert chase(result, "tx_0901a")["status"] == "skip"
     # Entered but flagged: the cardholder may know what the new vendor is.
-    assert chase(result, "tx_0918a")["reason"] == "the auto-coder flagged it: new: not seen before"
+    # Flagged for review: that review is accounting's, so the cardholder isn't chased.
+    assert chase(result, "tx_0918a") == {"source": "rule", "status": "skip", "ask_for": [],
+                                         "reason": "a subscription the auto-coder flagged for accounting's review"}
     assert chase(result, "tx_0912a")["status"] == "draft"         # not a subscription: chase it
 
 
@@ -182,8 +184,11 @@ def test_injection_fixture_changes_nothing(tmp_path):
     result = core.run([FIXTURES / "injection" / "injection.csv"])
     validator().validate(as_json(result))
 
+    # Swap the injected text for neutral text. Whether a memo is *present* matters
+    # (a charge with one isn't chased); what it says must never matter.
     def blank(row):
-        row["Memo"] = ""
+        if row["Memo"]:
+            row["Memo"] = "Team lunch"
         row["User"] = "Someone"
     clean = core.run([rewrite(FIXTURES / "injection" / "injection.csv", tmp_path / "c.csv", blank)])
     decisions = lambda r: {tx["id"]: tx["inferred"]["chase"] for tx in r["transactions"]}

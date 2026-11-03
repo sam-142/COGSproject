@@ -19,7 +19,10 @@ Where each field comes from, in order of preference:
                 Brex's Merchant Name
     ACCOUNT     a coding rule, else the account already on the Brex charge, by
                 its fully qualified name
-    MEMO        Brex's memo
+    MEMO        the memo already on the Brex charge, if any (never overwritten);
+                else the subscription memo, built from quickbooks.yaml's
+                `subscription_memo` template, the same way accounting's
+                OT Vendor Subscription List builds it
     CLASS       a coding rule, else Brex's integration class
     DEPARTMENT  a coding rule, else Brex's integration department
     CHARGE      the amount
@@ -31,6 +34,23 @@ entry; it's a note in the review file.
 from cog_transactions.shape import infer
 
 QB_COLUMNS = ["DATE", "REF NO.", "TYPE", "PAYEE", "ACCOUNT", "MEMO", "CLASS", "DEPARTMENT", "CHARGE"]
+
+# Fields a subscription memo template may use -> the parsed field it reads.
+MEMO_FIELDS = {
+    "statement_descriptor": "merchant_descriptor",   # Brex column 23
+    "merchant_name": "merchant_name",
+    "department": "spender_department",              # Brex column 20, "Department"
+    "card_last4": "card_last4",
+    "cardholder": "cardholder",
+    "brex_category": "brex_category",
+}
+
+
+def subscription_memo(parsed, template):
+    """Fill the memo template from the charge. A blank field leaves no double
+    space behind. Values are inserted as text, never interpreted."""
+    text = template.format_map({k: parsed.get(f) or "" for k, f in MEMO_FIELDS.items()})
+    return " ".join(text.split())
 SUBSCRIPTION_LABELS = {"recurring", "likely-recurring", "new", "amount-changed"}
 REVIEW_LABELS = {"likely-recurring", "new", "amount-changed"}
 
@@ -56,7 +76,8 @@ def _entry(tx, rule, qb):
         "PAYEE": _first((rule.get("payee"), "rule"), (p["brex_vendor"], "export"),
                         (p["merchant_name"], "export"), (p["merchant_descriptor"], "export")),
         "ACCOUNT": _first((rule.get("account"), "rule"), (p["brex_account"], "export")),
-        "MEMO": _first((p["memo"], "export")),
+        "MEMO": _first((p["memo"], "export"),
+                       (subscription_memo(p, qb["subscription_memo"]), "template")),
         "CLASS": _first((rule.get("class"), "rule"), (p["brex_class"], "export")),
         "DEPARTMENT": _first((rule.get("department"), "rule"), (p["brex_department"], "export")),
         "CHARGE": (f"{abs(p['amount']):.2f}", "export"),
@@ -83,11 +104,18 @@ def propose(transactions, ctx):
         else:
             rule = ctx["rules"].get(tx["inferred"]["vendor"]["id"], {})
             fields, sources = _entry(tx, rule, qb)
-            review = None
+            notes = []
             if label in REVIEW_LABELS:
-                review = f"{label}: {rec['reason']}"
+                notes.append(f"{label}: {rec['reason']}")
             elif rec.get("amount_flag"):
-                review = rec["amount_flag"]
+                notes.append(rec["amount_flag"])
+            dup = rec["evidence"].get("duplicate")
+            if dup:
+                notes.append(f"possible duplicate of {dup['of']} (same vendor and amount on {dup['date']})")
+            if sources["MEMO"] == "template" and "{department}" in qb["subscription_memo"] \
+                    and not p["spender_department"]:
+                notes.append("memo has no department: Brex's Department is blank")
+            review = "; ".join(notes) or None
             coding = {
                 "status": "ready",
                 "source": "rule" if "rule" in sources.values() else "export",

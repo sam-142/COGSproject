@@ -19,10 +19,9 @@ copy drifts from `sample-data/`.
 | `history-order/` | a later month passed in as history |
 | `usage-billing/` | usage-billed vs fixed-price changes; merchants found through Brex's name and category |
 
-**Known gaps.** `long-history`, `double-charge` and `history-order` each contain a case the Cog gets
-wrong today. Their tests are marked as expected failures (`xfail`, strict), so they show as `x` in
-the test run. When a gap is fixed, its test passes, the run fails on the stale mark, and the mark gets
-removed.
+**Formerly known gaps.** `long-history`, `double-charge` and `history-order` each held a case the
+Cog got wrong (a cancelled subscription expected forever, duplicates not flagged, later history
+used as evidence). All three are fixed; their tests are ordinary tests now.
 
 **What the injection fixture checks.** With no model step, an instruction in a descriptor can only
 fail to match a vendor pattern, or match the vendor it names and be treated like any other charge

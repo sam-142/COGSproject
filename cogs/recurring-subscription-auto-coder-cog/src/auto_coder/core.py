@@ -27,6 +27,13 @@ def run(input_path, history_paths=(), context_dir=None):
         unparsed.extend(bad)
         columns.append(cols)
 
+    # History only counts from before the month being coded. A later month
+    # passed as history would otherwise be used as evidence.
+    later = []
+    if transactions:
+        first = min(f"{tx['parsed']['transaction_date']:%Y-%m}" for tx in transactions)
+        later = [t for t in history if f"{t['parsed']['transaction_date']:%Y-%m}" >= first]
+        history = [t for t in history if f"{t['parsed']['transaction_date']:%Y-%m}" < first]
     unmatched = vendors.identify(transactions, ctx["vendors"], ctx["subscription_categories"])
     vendors.identify(history, ctx["vendors"], ctx["subscription_categories"])
     missing = recurrence.label(transactions, history, ctx, history_supplied=bool(history_paths))
@@ -45,6 +52,10 @@ def run(input_path, history_paths=(), context_dir=None):
     blanks = Counter(k for c in entries for k in c["blank"])
 
     warnings = list(ctx["warnings"])
+    if later:
+        files = sorted({t["source"]["file"] for t in later})
+        warnings.append(f"{len(later)} history row(s) are from the month being coded or later, and were "
+                        f"ignored: {', '.join(files)}")
     if not history_paths:
         warnings.append("no history supplied: subscriptions are labelled likely-recurring at best, "
                         "and only the known-recurring list can establish a vendor")

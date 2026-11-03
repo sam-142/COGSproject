@@ -23,7 +23,8 @@ def _values(tx, questions):
     form = [f"ref: {tx['id']}"] + [f"{q['key']}:" for q in questions]
     values = {
         "card_last4": p["card_last4"] or "????",
-        "cardholder": p["cardholder"] or "",
+        # Brex's User column. Blank is rare, but say so rather than leave "()".
+        "cardholder": p["cardholder"] or "name not on the export",
         "channel": inf["route"]["channel"] or "",
         "merchant": p["merchant_name"] or p["merchant_descriptor"],
         "descriptor": p["merchant_descriptor"],

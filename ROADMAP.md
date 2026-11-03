@@ -16,19 +16,20 @@ layout.
 | Reads the real Brex export | yes: 22 of 70 columns | yes: same shared reader |
 | Main output | QuickBooks file in accounting's nine fields, plus a review CSV | drafts for review, chase list, chase log |
 | `COG.md` + manifest | yes | yes |
-| Tests | 96 passing, 3 known gaps (`xfail`) | 76 passing |
+| Tests | 111 passing | 85 passing |
+| Web page (`app/`, outside both Cogs) | runs this Cog, then the chase-list builder | shows its Slack drafts |
 | Context files | **empty defaults**; real ones via `--context` | **empty defaults** (vendors, cards); placeholder policy |
 | Evaluation | not built | not built |
 | Model step | not built, deliberately last | not built, deliberately last |
 
 ## Next up, in order
 
-1. **Get the open answers from accounting** (Phase 0).
+1. **Get the open answers from accounting** (Phase 0), and **show them the web page** on a real
+   month (Phase 3).
 2. **Chase-list builder: read replies back in** (Phase 4).
-3. **Fix the three auto-coder gaps** the test cases exposed (Phase 2).
-4. **Evaluation scripts** for both Cogs, against synthetic answer keys.
-5. **Write the real-data runbook** (Phase 5).
-6. **Commit** regularly; a lot of work is uncommitted.
+3. **Evaluation scripts** for both Cogs, against synthetic answer keys.
+4. **Write the real-data runbook** (Phase 5).
+5. **Commit** regularly; a lot of work is uncommitted.
 
 ---
 
@@ -92,13 +93,22 @@ Per-field read accuracy on real data is still to be reported (rates only, never 
   every posted subscription charge; ACCOUNT from the Brex charge unless a coding rule overrides it;
   blank fields don't block an entry.
 - [x] Review CSV for accounting, full JSON output, expected-but-missing list.
+- [x] **The upload file**: the Brex CSV with the subscription memo (accounting's OT Vendor
+  Subscription List formula) filled on each subscription row, ready to upload as they do today.
+- [x] **A local web page** (`app/`, outside both Cogs): drop in the statement and earlier months,
+  press Run, download the updated statement and the report, and see the Slack drafts. Local only,
+  deletes everything when stopped.
+- [ ] The spreadsheet's column J in the memo: what it holds, and when it appears.
+- [ ] Possibly read the OT Vendor Subscription List itself as the vendor list (needs its headers).
 
 **Before real data:**
 
-- [ ] **Fix the three known gaps.** Each has an `xfail` test that defines the fix:
-  - a subscription cancelled months ago is reported missing forever (`long-history`);
-  - two identical charges on the same day are both coded (`double-charge`);
-  - a later month passed as history counts as evidence (`history-order`).
+- [x] **The three known gaps fixed**, and their tests are ordinary tests now:
+  - a cancelled subscription is no longer expected forever;
+  - a possible duplicate (same vendor, same amount, within 3 days) is flagged;
+  - history from the month being coded or later is ignored, with a warning.
+- [x] **Consecutive months:** established means charged in each of the two months before; gaps
+  give `likely-recurring` with the months named.
 - [x] **No invented data in the defaults.** Context files are empty; the invented ones are test data.
 - [x] Real context via an override folder (`--context`), and `tools/vendors_to_yaml.py` for a real
   vendor list.
@@ -121,7 +131,8 @@ in `evaluation/README.md`, and Known limitations in `COG.md` reflects it.
 They asked for proposals they can say yes or no to, so nobody spends time on things they don't need.
 This can happen now, with synthetic output, and again with real output.
 
-- [ ] Show the auto-coder's review CSV.
+- [ ] Show the web page (`app/`) on a real month: the updated statement, the review report and the
+  Slack drafts.
 - [ ] Show a few chase drafts from `pixi run demo`.
 - [ ] Ask them to confirm which fields matter most, Slack or email, and whether one message per
   charge is right or too many.
@@ -142,7 +153,10 @@ Built ahead of Phase 3, on synthetic data.
 - [x] Routes to one channel per card (`context/cards.yaml`).
 - [x] One message per charge, from an editable template; Slack mentions in export text are defused.
 - [x] Chase log: a charge counts as chased only after a person runs `pixi run sent`.
-- [x] Optional input of the auto-coder's output, to skip what it coded.
+- [x] Runs on the auto-coder's updated statement: only charges **without a memo** get a Slack
+  draft; pending subscription charges and subscriptions flagged for accounting's review are skipped.
+- [x] Optional input of the auto-coder's JSON (`--coded`), to skip every charge it treats as a
+  subscription.
 
 **Before real data:**
 

@@ -251,6 +251,25 @@ Record the answers here as they land.
   REF NO. (`Last 4`), TYPE, PAYEE, ACCOUNT (`Integration Debit Line Category Fully Qualified Name`),
   MEMO, CLASS, DEPARTMENT, CHARGE. Blank fields never block an entry; only the transaction does
   (pending, declined, not a subscription). Coding rules are optional overrides.
+- **Decided: the auto-coder's main output is the upload file**: the original Brex CSV with the
+  Memo filled on subscription rows, as accounting does today via the OT Vendor Subscription List.
+  The memo template is `{statement_descriptor} Paid by OT, Serving {department} OT` (Brex columns
+  23 and 20), in `quickbooks.yaml`. Existing memos are never overwritten. This file keeps all 70
+  columns, so it is the one output that is not trimmed. The chase-list builder will fill memos on
+  the other rows from replies.
+- **Decided: the chase-list builder runs on the auto-coder's updated statement.** A charge with a
+  memo isn't chased (presence only, never content); a pending charge from a vendor whose other rows
+  carry the subscription memo ("Paid by OT, Serving") is skipped; subscriptions the auto-coder
+  flagged for review stay with accounting and aren't chased. Both settings are in
+  `chase-policy.yaml`.
+- **Decided: one web page for both Cogs, outside both Cogs** (`app/`, run with
+  `pixi run --manifest-path app/pixi.toml ui`). It contains **no Cog logic and imports no Cog
+  code**: it runs the auto-coder's `code` task and then the chase-list builder's `draft` task
+  through pixi, each in its own environment, and reads the files they write. Never move web code
+  into a Cog. Rules it must keep: listen on `127.0.0.1` only; load nothing from the internet (inline CSS and JS,
+  strict Content-Security-Policy); require the per-session token on every run and download; keep
+  uploads and results in a temporary folder deleted on every way of stopping (Ctrl+C, SIGTERM,
+  SIGHUP); show statement values as text, never HTML. Standard library only.
 - **Decided: no invented data in the Cogs' defaults.** Lookup files in `context/` are empty; real
   ones live in `private/context/` and are passed with `--context`.
 - **Open: reply format and where answers go** (a `provided` object in the transaction shape is the

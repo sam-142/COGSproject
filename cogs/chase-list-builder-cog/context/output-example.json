@@ -3,7 +3,7 @@
     "cog": "chase-list-builder-cog",
     "version": "0.0.1",
     "transaction_shape": "0.2.0",
-    "at": "2026-10-14T12:00:00+00:00",
+    "at": "2026-11-03T12:00:00+00:00",
     "mode": "strict",
     "binding": null,
     "inputs": [
@@ -35,15 +35,18 @@
     "context": {
       "vendors": {
         "version": "0.0.1",
-        "status": "synthetic"
+        "status": "synthetic",
+        "from": "override"
       },
       "cards": {
         "version": "0.0.1",
-        "status": "synthetic"
+        "status": "synthetic",
+        "from": "override"
       },
       "chase-policy": {
         "version": "0.0.1",
-        "status": "placeholder"
+        "status": "placeholder",
+        "from": "default"
       }
     },
     "template": "message-template.md",
@@ -57,16 +60,16 @@
       "duplicates_dropped": 0,
       "pending_superseded": 2,
       "unparsed_rows": 0,
-      "unmatched_descriptors": 3,
+      "unmatched_descriptors": 0,
       "chase": {
         "draft": 8
       },
       "drafts": 8
     },
     "warnings": [
-      "placeholder context files in use: vendors, cards, chase-policy",
+      "synthetic or placeholder context files in use: vendors, cards, chase-policy",
       "no chase log: charges chased before will be drafted again",
-      "no auto-coder output: recurring charges it would code are chased too",
+      "no subscription memos in the input and no --coded: is this the raw Brex export? Run the auto-coder first and use its .upload.csv, or subscriptions are chased too",
       "2 posted charge(s) linked to a pending one by matching card, merchant and date, not by the export; check them: tx_0925a, tx_0926a"
     ]
   },
@@ -96,7 +99,7 @@
         "memo": null,
         "receipt_attached": false,
         "spender_department": "Executive",
-        "brex_account": "6110 Software Subscriptions",
+        "brex_account": "Expenses:6110 Software Subscriptions",
         "brex_class": null,
         "brex_department": null,
         "brex_vendor": null
@@ -105,6 +108,7 @@
         "vendor": {
           "id": "slack",
           "category": "subscription",
+          "billing": "fixed",
           "source": "context",
           "pattern": "^SLACK "
         },
@@ -119,7 +123,7 @@
         "chase": {
           "source": "rule",
           "status": "draft",
-          "reason": "no information on file for this charge",
+          "reason": "no memo: nothing on file says what this charge was for",
           "ask_for": [
             "purpose",
             "department",
@@ -153,17 +157,18 @@
         "memo": null,
         "receipt_attached": false,
         "spender_department": "Events",
-        "brex_account": "6410 Meals",
+        "brex_account": "Expenses:6410 Meals",
         "brex_class": null,
         "brex_department": null,
         "brex_vendor": null
       },
       "inferred": {
         "vendor": {
-          "id": null,
-          "category": null,
-          "source": "none",
-          "reason": "no pattern in the vendor list matches"
+          "id": "lucky-bar-grill",
+          "category": "other",
+          "billing": null,
+          "source": "export",
+          "reason": "not in the vendor list; Brex's Merchant Name and Category"
         },
         "pending_match": {
           "source": "match",
@@ -182,7 +187,7 @@
         "chase": {
           "source": "rule",
           "status": "draft",
-          "reason": "no information on file for this charge",
+          "reason": "no memo: nothing on file says what this charge was for",
           "ask_for": [
             "purpose",
             "department",
@@ -216,7 +221,7 @@
         "memo": null,
         "receipt_attached": false,
         "spender_department": "Engineering",
-        "brex_account": "6120 Cloud Hosting",
+        "brex_account": "Expenses:6120 Cloud Hosting",
         "brex_class": null,
         "brex_department": null,
         "brex_vendor": null
@@ -225,6 +230,7 @@
         "vendor": {
           "id": "aws",
           "category": "subscription",
+          "billing": "usage",
           "source": "context",
           "pattern": "AMAZON WEB SERVICES"
         },
@@ -241,7 +247,7 @@
         "chase": {
           "source": "rule",
           "status": "draft",
-          "reason": "no information on file for this charge",
+          "reason": "no memo: nothing on file says what this charge was for",
           "ask_for": [
             "purpose",
             "department",
@@ -269,27 +275,23 @@
       "transaction_id": "tx_0924a",
       "channel": "#card-1290",
       "needs_routing": false,
-      "text": "A charge on card ending 1290 needs a few details for accounting:\n\n> Slack, 142.50 USD on 2026-09-24\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0924a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
+      "text": "A charge on the card ending 1290 (Alex Rivera) needs a few details for accounting:\n\n> Slack, 142.50 USD on 2026-09-24\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0924a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
     },
     {
       "id": "draft-tx_0926a",
       "transaction_id": "tx_0926a",
       "channel": "#card-7742",
       "needs_routing": false,
-      "text": "A charge on card ending 7742 needs a few details for accounting:\n\n> Lucky Bar & Grill, 96.25 USD on 2026-09-26\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0926a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
+      "text": "A charge on the card ending 7742 (Riley Patel) needs a few details for accounting:\n\n> Lucky Bar & Grill, 96.25 USD on 2026-09-26\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: tx_0926a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
     },
     {
       "id": "draft-px_0928a",
       "transaction_id": "px_0928a",
       "channel": "#card-4417",
       "needs_routing": false,
-      "text": "A charge on card ending 4417 needs a few details for accounting:\n\n> Amazon Web Services, 1,500.00 USD on 2026-09-28 (pending: the amount may change when it settles)\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: px_0928a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
+      "text": "A charge on the card ending 4417 (Jordan Lee) needs a few details for accounting:\n\n> Amazon Web Services, 1,500.00 USD on 2026-09-28 (pending: the amount may change when it settles)\n\nWhoever made this charge, could you reply in this thread with:\n\u2022 What was this for?\n\u2022 Which department or team is it for?\n\u2022 Can you attach the receipt or invoice?\n\nCopy this and fill it in:\n```\nref: px_0928a\npurpose:\ndepartment:\nreceipt:\n```\nThank you!\n"
     }
   ],
-  "unmatched_descriptors": [
-    "SQ *PRINTWORKS",
-    "TST* LUCKY BAR & GRI",
-    "TST* LUCKY BAR & GRILL"
-  ],
+  "unmatched_descriptors": [],
   "unparsed": []
 }

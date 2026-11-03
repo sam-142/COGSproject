@@ -1,17 +1,22 @@
-"""Write results: the QuickBooks file, a review CSV for accounting, the full JSON,
-and a terminal summary."""
+"""Write results: the upload file (the Brex CSV with subscription memos filled
+in), the QuickBooks file, a review CSV for accounting, the full JSON, and a
+terminal summary."""
 import csv
 import json
 from pathlib import Path
 
 from auto_coder.coding import QB_COLUMNS
+from cog_transactions.load import COLUMNS
 from cog_transactions.shape import to_json
+
+MEMO_COLUMN = COLUMNS["memo"][0]
+ID_COLUMN = COLUMNS["transaction_id"][0]
 
 # The order labels appear in the review file and summary: what needs a look first.
 SHOWN = ["amount-changed", "new", "likely-recurring", "recurring"]
 
 REVIEW_COLUMNS = [
-    "label", "quickbooks", "review", "vendor", "merchant_name", "merchant_descriptor",
+    "label", "quickbooks", "review", "memo", "memo_from", "vendor", "merchant_name", "merchant_descriptor",
     "amount", "currency", "change_vs_last", "transaction_date", "status", "card_last4", "cardholder",
     "account", "account_from", "class", "department", "blank_fields",
     "months_seen", "reason", "transaction_id",
@@ -35,6 +40,10 @@ def _review_rows(result):
             "label": rec["label"],
             "quickbooks": cod["status"],
             "review": cod.get("review") or "",
+            # The memo this charge gets in the upload file: calculated from the
+            # subscription memo formula (template), or one already on the charge (export).
+            "memo": entry.get("MEMO", ""),
+            "memo_from": sources.get("MEMO", "") if entry.get("MEMO") else "",
             "vendor": tx["inferred"]["vendor"]["id"],
             "merchant_name": p["merchant_name"] or "",
             "merchant_descriptor": p["merchant_descriptor"],
@@ -67,13 +76,52 @@ def _quickbooks_rows(result):
     return [tx["inferred"]["coding"]["entry"] for tx in ready]
 
 
-def write(result, out_dir):
+def memos_to_write(result):
+    """Transaction id -> memo, for every entry whose memo the Cog wrote."""
+    return {tx["id"]: tx["inferred"]["coding"]["entry"]["MEMO"]
+            for tx in result["transactions"]
+            if tx["inferred"]["coding"]["status"] == "ready"
+            and tx["inferred"]["coding"]["from"]["MEMO"] == "template"}
+
+
+def write_upload(result, month_path, out_path):
+    """The file accounting uploads to QuickBooks: the original Brex CSV, every
+    row and every column exactly as exported, with the Memo filled on subscription
+    rows. A memo already in the export is never overwritten.
+
+    Unlike every other output, this one keeps all of the export's columns,
+    because it *is* the export. It belongs wherever the export does (private/)."""
+    raw = Path(month_path).read_bytes()
+    bom = raw.startswith(b"\xef\xbb\xbf")
+    text = raw.decode("utf-8-sig")
+    newline = "\r\n" if "\r\n" in text else "\n"
+    reader = csv.DictReader(text.splitlines())
+    header = list(reader.fieldnames or [])
+    if MEMO_COLUMN not in header:
+        header.append(MEMO_COLUMN)
+    memos = memos_to_write(result)
+    rows = []
+    for row in reader:
+        if row.get(ID_COLUMN, "").strip() in memos and not (row.get(MEMO_COLUMN) or "").strip():
+            row[MEMO_COLUMN] = memos[row[ID_COLUMN].strip()]
+        rows.append(row)
+    with open(out_path, "w", newline="", encoding="utf-8-sig" if bom else "utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=header, lineterminator=newline)
+        w.writeheader()
+        w.writerows(rows)
+    return Path(out_path)
+
+
+def write(result, out_dir, month_path=None):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = Path(result["run"]["inputs"]["month"]["file"]).stem
     qb_path = out_dir / f"{stem}.quickbooks.csv"
     review_path = out_dir / f"{stem}.recurring-review.csv"
     json_path = out_dir / f"{stem}.recurring.json"
+    paths = []
+    if month_path is not None:
+        paths.append(write_upload(result, month_path, out_dir / f"{stem}.upload.csv"))
 
     # Exactly the columns QuickBooks entry uses, in that order, and nothing else.
     with qb_path.open("w", newline="", encoding="utf-8") as f:
@@ -85,7 +133,7 @@ def write(result, out_dir):
         w.writeheader()
         w.writerows(_review_rows(result))
     json_path.write_text(json.dumps(result, indent=2, default=to_json) + "\n", encoding="utf-8")
-    return qb_path, review_path, json_path
+    return (*paths, qb_path, review_path, json_path)
 
 
 def summary(result):
@@ -120,6 +168,7 @@ def summary(result):
     lines.append(f"{c['transactions']} transactions, {c['history_transactions']} in history, "
                  f"{c['unparsed_rows']} unparsed rows, {c['unmatched_descriptors']} unmatched descriptors")
     lines.append("quickbooks: " + ", ".join(f"{k} {v}" for k, v in c["coding"].items()))
+    lines.append(f"subscription memos written: {len(memos_to_write(result))}")
     if c["blank_fields"]:
         lines.append("blank in QuickBooks entries: " +
                      ", ".join(f"{k} {v}" for k, v in c["blank_fields"].items()))

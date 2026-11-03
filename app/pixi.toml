@@ -1,0 +1,22 @@
+[workspace]
+name = "cogs-app"
+version = "0.0.1"
+description = "A local web page over both Cogs: the updated statement, the review report and Slack drafts."
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[dependencies]
+# Standard library only. The Cogs aren't dependencies: the app runs them through
+# their own pixi tasks, each in its own environment.
+python = ">=3.11"
+pytest = ">=8"
+
+[tasks]
+# The web page. Runs on this computer only; deletes uploads and results when stopped.
+#   pixi run --manifest-path app/pixi.toml ui [--context DIR] [--log FILE]
+ui = "python server.py"
+
+# Tests run both Cogs for real, on their synthetic test data.
+test = "pytest -q tests"
+
+# NOTE: no [activation.env], deliberately.

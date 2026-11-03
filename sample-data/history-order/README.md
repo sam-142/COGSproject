@@ -8,5 +8,4 @@ Canva first appears in August, and again in September.
 **Expected:** coding August, Canva is `new`: September hadn't happened yet. A later month should be
 ignored as history, or the run should refuse it.
 
-**Known gap:** today the September file counts as evidence, so Canva comes out `likely-recurring`.
-The test is marked as an expected failure.
+The September rows are ignored as history, and the run warns, naming the file.

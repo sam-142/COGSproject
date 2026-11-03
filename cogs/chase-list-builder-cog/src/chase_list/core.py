@@ -62,8 +62,10 @@ def run(inputs, coded_path=None, log_path=None, context_dir=None, template_path=
                         "; ".join(f"{n} ({meaning.get(n, 'empty')})" for n in empty))
     if not log_path:
         warnings.append("no chase log: charges chased before will be drafted again")
-    if not coded_path:
-        warnings.append("no auto-coder output: recurring charges it would code are chased too")
+    if not coded_path and not select.subscription_vendors(transactions, ctx["policy"]["subscription_memo_marker"]):
+        # Probably the raw Brex export rather than the auto-coder's updated statement.
+        warnings.append("no subscription memos in the input and no --coded: is this the raw Brex export? "
+                        "Run the auto-coder first and use its .upload.csv, or subscriptions are chased too")
     matched = [tx["id"] for tx in transactions if "pending_match" in tx["inferred"]]
     if matched:
         warnings.append(f"{len(matched)} posted charge(s) linked to a pending one by matching card, "

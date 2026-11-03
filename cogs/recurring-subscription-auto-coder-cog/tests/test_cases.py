@@ -1,8 +1,6 @@
 """One section per case folder in evaluation/fixtures/ (copied from sample-data/).
 Each folder's README in sample-data/ says what it tests and what should happen.
 
-Tests marked xfail are known gaps: they assert what *should* happen, fail
-today, and will start passing (and so fail the run, being strict) once fixed.
 """
 import csv
 import filecmp
@@ -128,14 +126,12 @@ def test_subscription_that_stopped_last_month_is_missing(long_history):
     assert "miro" in missing(long_history)
 
 
-@pytest.mark.xfail(strict=True, reason="known gap: expected-but-missing never forgets a vendor")
 def test_subscription_cancelled_months_ago_is_not_missing(long_history):
     assert "loom" not in missing(long_history)
 
 
 # --- double-charge -----------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="known gap: identical charges in one month are both coded")
 def test_second_identical_charge_is_flagged():
     result = run("double-charge", "month-2026-09.csv", ["history-2026-07.csv", "history-2026-08.csv"])
     flagged = sorted(bool(next(t for t in result["transactions"] if t["id"] == i)["inferred"]["coding"]["review"])
@@ -145,7 +141,6 @@ def test_second_identical_charge_is_flagged():
 
 # --- history-order -----------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="known gap: a later month passed as history counts as evidence")
 def test_later_month_is_not_used_as_history():
     result = run("history-order", "month-2026-08.csv", ["history-2026-07.csv", "later-2026-09.csv"])
     assert outcome(result, "ho_08_canva")[0] == "new"
@@ -359,7 +354,7 @@ def test_every_reason_that_applies_is_listed(usage):
     assert why(usage, "ub_09_datadog") == [
         "on the vendor list as a subscription, usage billing",
         "Brex category: Recurring software & SaaS",
-        "charged in 2 earlier months (2026-07, 2026-08)",
+        "charged in each of the last 2 months (2026-07, 2026-08)",
     ]
 
 
@@ -367,7 +362,7 @@ def test_brex_only_subscription_says_so(usage):
     # Not on the vendor list: the evidence is Brex's category and the history.
     assert why(usage, "ub_09_retool") == [
         "Brex category: Recurring software & SaaS",
-        "charged in 2 earlier months (2026-07, 2026-08)",
+        "charged in each of the last 2 months (2026-07, 2026-08)",
     ]
 
 
@@ -389,4 +384,127 @@ def test_one_offs_have_no_subscription_reasons(usage, tmp_path):
     assert why(usage, "ub_09_contractor") == []
     rows = {r["transaction_id"]: r for r in csv.DictReader(report.write(usage, tmp_path)[1].open())}
     assert rows["ub_09_retool"]["reason"] == ("Brex category: Recurring software & SaaS; "
-                                              "charged in 2 earlier months (2026-07, 2026-08)")
+                                              "charged in each of the last 2 months (2026-07, 2026-08)")
+
+
+# --- the subscription memo and the upload file --------------------------------
+
+def _upload(tmp_path, month, history=(), context_dir=None):
+    from auto_coder import report
+    month_path = FIXTURES / month
+    result = core.run(month_path, [FIXTURES / h for h in history], context_dir=context_dir)
+    path = report.write_upload(result, month_path, tmp_path / "upload.csv")
+    read = lambda p: list(csv.DictReader(p.open(encoding="utf-8-sig")))
+    return result, read(month_path), read(path), path
+
+
+def test_memo_follows_the_subscription_list_formula(tmp_path):
+    # =CONCATENATE(Statement Descriptor," Paid by ","OT",", Serving ",Department," ","OT")
+    _, _, rows, _ = _upload(tmp_path, "baseline/brex-transactions-2026-09.csv",
+                            ["baseline/brex-transactions-2026-08.csv"])
+    memo = {r["Id"]: r["Memo"] for r in rows}
+    assert memo["tx_0901a"] == "GITHUB.COM 4ZK8M Paid by OT, Serving Engineering OT"
+    assert memo["tx_0905b"] == "HUBSPOT INC Paid by OT, Serving Marketing OT"
+
+
+def test_upload_file_is_the_export_with_only_memos_added(tmp_path):
+    result, original, uploaded, _ = _upload(tmp_path, "baseline/brex-transactions-2026-09.csv",
+                                            ["baseline/brex-transactions-2026-07.csv",
+                                             "baseline/brex-transactions-2026-08.csv"])
+    assert [r["Id"] for r in uploaded] == [r["Id"] for r in original]
+    assert list(uploaded[0]) == list(original[0])                  # all 70 columns, same order
+    changed = {k for a, b in zip(uploaded, original) for k in a if a[k] != b[k]}
+    assert changed == {"Memo"}
+    memo = {r["Id"]: r["Memo"] for r in uploaded}
+    assert memo["tx_0918a"] == "New subscription"                  # existing memo kept
+    assert memo["tx_0910c"] == "" and memo["px_0928a"] == ""       # one-off; pending
+    assert sum(bool(r["Memo"]) for r in uploaded) - sum(bool(r["Memo"]) for r in original) == 31
+
+
+def test_upload_file_keeps_excel_style_encoding(tmp_path):
+    _, _, _, path = _upload(tmp_path, "malformed/excel-bom.csv")
+    raw = path.read_bytes()
+    assert raw.startswith(b"\xef\xbb\xbf") and b"\r\n" in raw
+
+
+def test_blank_department_leaves_no_double_space_and_is_noted(tmp_path):
+    src = FIXTURES / "baseline" / "brex-transactions-2026-09.csv"
+    with src.open(encoding="utf-8-sig") as f, (tmp_path / src.name).open("w", newline="") as g:
+        reader = csv.DictReader(f)
+        writer = csv.DictWriter(g, fieldnames=reader.fieldnames)
+        writer.writeheader()
+        for row in reader:
+            if row["Id"] == "tx_0901a":
+                row["Department"] = ""
+            writer.writerow(row)
+    result = core.run(tmp_path / src.name, [FIXTURES / "baseline" / "brex-transactions-2026-08.csv"])
+    coding = next(t for t in result["transactions"] if t["id"] == "tx_0901a")["inferred"]["coding"]
+    assert coding["entry"]["MEMO"] == "GITHUB.COM 4ZK8M Paid by OT, Serving OT"
+    assert "memo has no department" in coding["review"]
+
+
+def test_memo_template_can_be_changed(tmp_path):
+    (tmp_path / "quickbooks.yaml").write_text('subscription_memo: "{merchant_name} for {department}"\n')
+    result = core.run(FIXTURES / "baseline" / "brex-transactions-2026-09.csv",
+                      [FIXTURES / "baseline" / "brex-transactions-2026-08.csv"], context_dir=tmp_path)
+    coding = next(t for t in result["transactions"] if t["id"] == "tx_0901a")["inferred"]["coding"]
+    assert coding["entry"]["MEMO"] == "GitHub for Engineering"
+
+
+def test_unknown_memo_field_is_an_error(tmp_path):
+    (tmp_path / "quickbooks.yaml").write_text('subscription_memo: "{statement_descriptr} Paid by OT"\n')
+    with pytest.raises(context.ContextError, match="statement_descriptr"):
+        context.load(tmp_path)
+
+
+# --- consecutive months, duplicates, history order -----------------------------
+
+def test_gaps_between_charges_make_it_likely_not_recurring(long_history):
+    # Figma: March and June, then September. Two earlier months, but not the last two.
+    rec = next(t for t in long_history["transactions"] if t["id"] == "lh_09_figma")["inferred"]["recurrence"]
+    assert rec["label"] == "likely-recurring"
+    assert rec["reason"] == "charged in 2026-03, 2026-06, but not in each of the last 2 months"
+    assert "charged in 2 earlier months (2026-03, 2026-06), not in consecutive months" in rec["why_subscription"]
+    assert rec["evidence"]["consecutive_months"] == 0
+
+
+def test_six_months_in_a_row_counts_the_whole_run(long_history):
+    rec = next(t for t in long_history["transactions"] if t["id"] == "lh_09_github")["inferred"]["recurrence"]
+    assert rec["evidence"]["consecutive_months"] == 6
+    assert any(w.startswith("charged in each of the last 6 months") for w in rec["why_subscription"])
+
+
+def test_only_recently_charging_vendors_are_expected(long_history):
+    # Miro charged through August: expected. Loom stopped in May: not. Figma's gaps: not.
+    assert {"miro"} <= missing(long_history)
+    assert not {"loom", "figma"} & missing(long_history)
+
+
+def test_duplicate_is_entered_and_flagged():
+    result = run("double-charge", "month-2026-09.csv", ["history-2026-07.csv", "history-2026-08.csv"])
+    second = next(t for t in result["transactions"] if t["id"] == "dc_09_figma_b")["inferred"]
+    assert second["coding"]["status"] == "ready"                     # a flag never blocks
+    assert second["coding"]["review"] == "possible duplicate of dc_09_figma_a (same vendor and amount on 2026-09-02)"
+    first = next(t for t in result["transactions"] if t["id"] == "dc_09_figma_a")["inferred"]
+    assert first["coding"]["review"] is None
+
+
+def test_later_history_is_ignored_and_warned_about():
+    result = run("history-order", "month-2026-08.csv", ["history-2026-07.csv", "later-2026-09.csv"])
+    assert any("from the month being coded or later" in w and "later-2026-09.csv" in w
+               for w in result["run"]["warnings"])
+    assert result["run"]["counts"]["history_months"] == ["2026-07"]
+
+
+# --- the memo in the review CSV --------------------------------------------------
+
+def test_review_shows_each_charges_memo(tmp_path):
+    from auto_coder import report
+    result = run("baseline", "brex-transactions-2026-09.csv",
+                 ["brex-transactions-2026-07.csv", "brex-transactions-2026-08.csv"])
+    review_path = report.write(result, tmp_path)[1]
+    rows = {r["transaction_id"]: r for r in csv.DictReader(review_path.open())}
+    assert (rows["tx_0901a"]["memo"], rows["tx_0901a"]["memo_from"]) == (
+        "GITHUB.COM 4ZK8M Paid by OT, Serving Engineering OT", "template")
+    assert (rows["tx_0918a"]["memo"], rows["tx_0918a"]["memo_from"]) == ("New subscription", "export")
+    assert (rows["px_0928a"]["memo"], rows["px_0928a"]["memo_from"]) == ("", "")   # pending: no entry yet

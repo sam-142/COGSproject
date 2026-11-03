@@ -1,4 +1,4 @@
-A charge on card ending {card_last4} needs a few details for accounting:
+A charge on the card ending {card_last4} ({cardholder}) needs a few details for accounting:
 
 > {merchant}, {amount} {currency}{original_amount} on {date}{status_note}
 

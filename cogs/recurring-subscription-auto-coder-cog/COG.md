@@ -36,6 +36,8 @@ It **proposes**. A person checks the entries before anything reaches QuickBooks.
   earlier months, known-recurring list, matching amount).
 - Flagging recurring charges whose amount changed, and known recurring vendors that didn't charge
   this month.
+- Writing the **subscription memo** onto each posted subscription charge in the Brex CSV,
+  producing the file accounting uploads to QuickBooks.
 - Writing a QuickBooks entry (DATE, REF NO., TYPE, PAYEE, ACCOUNT, MEMO, CLASS, DEPARTMENT,
   CHARGE) for each **posted** subscription charge. Each field comes from the transaction, or from
   an optional coding rule; a field nothing supplies is left blank, and a blank never holds an entry
@@ -104,6 +106,12 @@ It **proposes**. A person checks the entries before anything reaches QuickBooks.
 
 ## Running it
 
+The accounting team normally uses the web page in `app/` at the repo root. It is not part of this
+Cog: it runs this Cog's `code` task, then the chase-list builder's `draft` task, and shows both
+results. See `app/README.md`.
+
+**The command line:**
+
 ```
 pixi run demo                                    # synthetic data and synthetic context, from evaluation/fixtures/
 pixi run code month.csv --history jul.csv aug.csv [--out DIR] [--context DIR]
@@ -114,7 +122,28 @@ Relative paths are resolved from the directory you run the command in.
 
 ## Expected outputs
 
-Three files in `--out` (default `./output/`), plus a summary printed to the terminal.
+Four files in `--out` (default `./output/`), plus a summary printed to the terminal.
+
+**`<month>.upload.csv`: the file accounting uploads to QuickBooks.** It is the original Brex CSV,
+every row and every column exactly as exported, with the **Memo** filled in on each posted
+subscription charge. Accounting's process today is to copy each subscription into the OT Vendor
+Subscription List, let its formula build the memo, and paste the memo back into the Brex CSV
+before uploading it; this file is the result of that, done automatically. A memo already in the
+export is never overwritten. Unlike the other outputs, this one keeps all 70 columns, because it
+*is* the export: keep it with the export, in `private/`.
+
+The memo comes from `subscription_memo` in [`context/quickbooks.yaml`](context/quickbooks.yaml),
+which reproduces the spreadsheet's formula
+`=CONCATENATE(B," Paid by ",D,", Serving ",G," ",I," ",J)`:
+
+```
+{statement_descriptor} Paid by OT, Serving {department} OT
+GITHUB.COM 4ZK8M Paid by OT, Serving Engineering OT
+```
+
+`statement_descriptor` is Brex column 23 (`Statement Descriptor`) and `department` is Brex column
+20 (`Department`). The spreadsheet's column J isn't used yet. A blank department leaves no double
+space, and the review file notes it.
 
 **`<month>.quickbooks.csv`**: one row per posted subscription charge, with exactly QuickBooks'
 columns and nothing else:
@@ -126,7 +155,7 @@ columns and nothing else:
 | TYPE | `type_charge` in `quickbooks.yaml` (default `Credit Card Expense`); `type_credit` for a credit |
 | PAYEE | a coding rule's `payee`, else Brex `Integration Vendor`, else Brex `Merchant Name` |
 | ACCOUNT | a coding rule's `account`, else the account on the Brex charge (`Integration Debit Line Category Fully Qualified Name`) |
-| MEMO | Brex `Memo` |
+| MEMO | Brex `Memo` if the export has one; otherwise the subscription memo above |
 | CLASS | a coding rule's `class`, else Brex `Integration Class` |
 | DEPARTMENT | a coding rule's `department`, else Brex `Integration Department` |
 | CHARGE | the amount |
@@ -136,7 +165,8 @@ change), declined charges, and anything that isn't a subscription (one-offs, ref
 fields don't.
 
 **`<month>.recurring-review.csv`**: every subscription charge, with what a person should check
-(`review`), where ACCOUNT came from, which fields are blank, and **why it counts as a
+(`review`), **the memo it gets** (`memo`, and `memo_from`: calculated from the formula, or already
+on the charge), where ACCOUNT came from, which fields are blank, and **why it counts as a
 subscription** (`reason`): every piece of evidence that applies, such as being on the vendor list,
 Brex's category, the earlier months it was charged, the known-recurring list, or a matching amount.
 
@@ -164,8 +194,8 @@ Recurrence labels:
 
 | Label | Means | In the QuickBooks file? |
 |---|---|---|
-| `recurring` | established vendor (on the known list, or charged in 2+ earlier months), and either **usage-billed** (any amount; a change over ±10% is flagged, e.g. "amount up 35% on last charge") or **fixed-price** with the amount within ±10% of 2+ earlier charges or of the known amount | yes, once posted; a big amount change on a usage-billed vendor is flagged for review |
-| `likely-recurring` | charged in only 1 earlier month; or **no history supplied**, so only the vendor list or Brex's category says it's a subscription | yes, once posted, flagged for review |
+| `recurring` | established vendor (on the known list, or charged in **each of the two months before** the charge's month), and either **usage-billed** (any amount; a change over ±10% is flagged, e.g. "amount up 35% on last charge") or **fixed-price** with the amount within ±10% of 2+ earlier charges or of the known amount | yes, once posted; a big amount change on a usage-billed vendor is flagged for review |
+| `likely-recurring` | charged in earlier months but **not in each of the last two** (gaps), or in only 1 earlier month; or **no history supplied**, so only the vendor list or Brex's category says it's a subscription | yes, once posted, flagged for review |
 | `amount-changed` | established **fixed-price** vendor, but no earlier charge is within ±10%: a price rise, added seats, a downgrade | yes, once posted, flagged for review |
 | `new` | a subscription vendor not seen in the history supplied | yes, once posted, flagged for review |
 | `one-off` | everything else: travel, meals, refunds, unrecognised descriptors | no |
@@ -232,9 +262,14 @@ should check what the charge is:
 - `new` vendors;
 - `likely-recurring` charges (one earlier month, or no history);
 - `amount-changed`: a fixed-price vendor whose amount moved beyond tolerance;
-- usage-billed charges whose amount moved more than ±10%.
+- usage-billed charges whose amount moved more than ±10%;
+- **possible duplicates**: a second posted charge from the same vendor, for the same amount,
+  within 3 days of the first.
 
-Recurring vendors missing this month are listed separately, as expected but missing.
+Subscriptions that charged in each of the last two months but not this one are listed
+separately, as expected but missing. One that stopped earlier isn't expected any more.
+
+History from the month being coded or later is ignored, and the run warns, naming the file.
 
 Blank fields aren't a reason to stop. The run counts them ("CLASS 32, DEPARTMENT 32") so the gaps
 are visible; filling them is accounting's job, or a coding rule's.
@@ -242,7 +277,10 @@ are visible; filling them is accounting's job, or a coding rule's.
 ## Completion criteria
 
 - Every transaction in the input appears in the output exactly once.
-- Every posted subscription charge has exactly one row in the QuickBooks file.
+- Every posted subscription charge has exactly one row in the QuickBooks file, and its memo in
+  the upload file.
+- The upload file differs from the export only in the Memo column, and only on rows that had no
+  memo.
 - No pending, declined or non-subscription charge has a row.
 - The run record names the binding, or says the run was strict.
 
@@ -267,15 +305,16 @@ are visible; filling them is accounting's job, or a coding rule's.
   subscriptions only when Brex's category is in `brex_subscription_categories` in `vendors.yaml`
   (default: "Recurring software & SaaS"). Brex's category is a guess; a subscription it calls
   something else is missed unless it's on the vendor list.
-- **Months are counted, not intervals.** "Charged in 2+ earlier months" doesn't check that the
-  charges were evenly spaced.
+- **Months, not days.** "Established" means a charge in each of the two calendar months before
+  this one; the day of the month isn't checked, so billing-date drift doesn't matter, but nor is
+  a charge that moved from the 1st to the 28th noticed.
+- **Quarterly and annual subscriptions** are never established from history (they skip months).
+  They come out `likely-recurring` or `new`, flagged, unless they're on the known-recurring list.
+- **Weekly or more frequent charges** look monthly: each month has one, so they're established, and
+  each charge is judged on its own.
 - **A merchant with no vendor-list entry and no Brex Merchant Name** is `one-off`.
 - **ACCOUNT trusts the Brex charge.** Without a coding rule, ACCOUNT is the account already on
   the Brex charge. Whether accounting chose it or Brex filled it in is still an open question for
   them. CLASS and DEPARTMENT are blank unless a rule supplies them: Brex doesn't have them.
-- **Three known gaps**, each with an `xfail` test that defines the fix:
-  - a subscription cancelled months ago is still reported as expected but missing;
-  - two identical charges on the same day are both entered, with no duplicate flag;
-  - a later month passed as history counts as evidence.
 - **No accuracy figures yet.** The tests check the fixtures' built-in cases. Accuracy against
   accounting's real entries hasn't been measured, because we don't have them.

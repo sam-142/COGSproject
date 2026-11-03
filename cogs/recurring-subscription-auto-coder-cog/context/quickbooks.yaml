@@ -4,6 +4,13 @@
 version: "1"
 status: settings
 
+# The memo written on each subscription charge, the same way the OT Vendor
+# Subscription List builds it: =CONCATENATE(B," Paid by ",D,", Serving ",G," ",I," ",J)
+# with B = Brex column 23 (Statement Descriptor), D and I = "OT", G = Brex
+# column 20 (Department). J isn't used yet. Fields available:
+# {statement_descriptor} {merchant_name} {department} {card_last4} {cardholder} {brex_category}
+subscription_memo: "{statement_descriptor} Paid by OT, Serving {department} OT"
+
 # TYPE column.
 type_charge: Credit Card Expense
 type_credit: Credit Card Credit

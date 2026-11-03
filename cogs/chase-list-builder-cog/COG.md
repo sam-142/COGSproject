@@ -40,8 +40,11 @@ to ask, and drafts the message. A person reads the drafts and sends the ones the
   [`context/message-template.md`](context/message-template.md). Each message ends with a fill-in
   reply form, so replies can be read back in later.
 - Remembering which charges have been chased, so none is chased twice.
-- Skipping subscription charges the auto-coder entered for QuickBooks with nothing to check, if
-  its output is passed in.
+- Running on **the auto-coder's updated statement** (its `.upload.csv`), where every subscription
+  already has its memo: only charges **without a memo** are chased. A pending charge from a vendor
+  whose other rows carry the subscription memo is a subscription that hasn't posted yet, and is
+  skipped too. So are subscriptions the auto-coder flagged for review: that review is
+  accounting's, not a cardholder's.
 
 ## Unsupported work
 
@@ -57,15 +60,18 @@ to ask, and drafts the message. A person reads the drafts and sends the ones the
 
 ## Expected inputs
 
-- **One or more CSV exports** from Brex, in any order. Brex's standard export, all 70 columns, as downloaded:
+- **One or more CSV exports** from Brex, in any order. **Normally the auto-coder's updated
+  statement** (`<month>.upload.csv`): the Brex export with subscription memos filled in, so only
+  the charges still without a memo are chased. A raw export works too, but then nothing marks the
+  subscriptions, and the run warns. Brex's standard export, all 70 columns, as downloaded:
   don't trim it. The reader keeps only the 22 columns the Cogs use and drops the rest (emails,
   receipt links, approvers, budgets) as each row is read; the run record says how many columns were
   read and ignored. The columns, and how each is read, are listed in `sample-data/README.md` at the
   repo root. Real exports belong in `private/`.
 - **The chase log** (`--log`, default `./chase-log.json`): what has already been sent.
-- **The auto-coder's output** (`--coded`, optional): its `.recurring.json` file for the same
-  period. Subscription charges it entered for QuickBooks with nothing to check are skipped;
-  entries it flagged for review are chased with the flag as the reason.
+- **The auto-coder's JSON** (`--coded`, optional): its `.recurring.json` for the same period.
+  Every charge it treats as a subscription is skipped, including ones it flagged for review and
+  pending ones. Not needed when the input is its updated statement, which already marks them.
 - **Context files** in `context/`, which the code reads (see
   [`context/README.md`](context/README.md)):
   - `cards.yaml`: each card's channel, cardholder and users. **Empty by default**, so every
@@ -81,11 +87,15 @@ to ask, and drafts the message. A person reads the drafts and sends the ones the
 ## Running it
 
 ```
-pixi run draft export.csv [more.csv ...] [--coded auto-coder.json] [--log chase-log.json]
+pixi run draft <month>.upload.csv [more.csv ...] [--log chase-log.json] [--context DIR]
 pixi run sent output/chase_<from>_to_<to>.chase.json [--only draft-tx_0910c ...]
 pixi run demo        # the synthetic September and synthetic cards, ignoring the chase log
 pixi run test
 ```
+
+The accounting team normally uses the web page in `app/` at the repo root, which runs the
+auto-coder and then this Cog's `draft` task on its updated statement, and shows the drafts with a
+Copy button each. It is not part of this Cog. See `app/README.md`.
 
 Other options for `draft`: `--no-log`, `--template PATH`, `--context DIR`, `--out DIR`. Relative
 paths are resolved from the directory you run the command in.
@@ -151,7 +161,7 @@ Chase decisions:
 | `draft` | a message was drafted |
 | `needs-routing` | a message was drafted, but the card has no channel; a person picks one |
 | `already-chased` | this charge, or the pending charge it replaced, was sent before |
-| `skip` | a refund, a declined charge, a subscription the auto-coder entered with nothing to check, or excluded by the policy |
+| `skip` | already has a memo; a pending charge from a subscription vendor; a subscription per `--coded` (flagged or not); a refund; a declined charge; or excluded by the policy |
 
 ## Completion criteria
 
@@ -170,9 +180,11 @@ Chase decisions:
 - **Declined charges** are read and counted, but never acted on.
 - **There is no card list until one is supplied.** Real cards, users and channels are needed
   before any draft is addressed; until then every draft is `needs-routing`.
-- **The policy chases almost everything.** Accounting hasn't said what counts as "enough
-  information". Without the auto-coder's output, recurring subscriptions are chased too: 50 of 51
-  charges in the sample month.
+- **"Has a memo" is the test for "enough information".** Accounting hasn't said otherwise. On the
+  sample month after the auto-coder, 15 of 51 charges are drafted. On a raw export with no
+  subscription memos, nearly everything is (50 of 51), and the run warns.
+- **A memo's presence is checked, never its content.** A charge whose memo says only "x" isn't
+  chased.
 - **One message per charge.** A person with five charges gets five messages.
 - **Matching pending to posted is a judgement.** It needs the same card, the same vendor (or the
   same start to Brex's Merchant Name), and transaction dates at most 3 days apart. Two visits to the same

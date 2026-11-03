@@ -5,7 +5,7 @@ packages, built to Trent Oliphant's CogSpec v0.1 (`cogs/SPEC.md`).
 
 | Cog | What it does today |
 |---|---|
-| **Recurring subscription auto-coder** (`cogs/recurring-subscription-auto-coder-cog/`) | Finds the recurring subscription charges in a month of Brex transactions and writes each posted one as a QuickBooks entry (DATE, REF NO., TYPE, PAYEE, ACCOUNT, MEMO, CLASS, DEPARTMENT, CHARGE), filling every field it can and flagging what a person should check |
+| **Recurring subscription auto-coder** (`cogs/recurring-subscription-auto-coder-cog/`) | Finds the recurring subscription charges in a month's Brex statement and fills in their memo, the way accounting's OT Vendor Subscription List does, giving back **the statement ready to upload to QuickBooks** plus a report of what to check. |
 | **Chase-list builder** (`cogs/chase-list-builder-cog/`) | Finds the charges accounting needs details on and drafts a message for each, addressed to the card's channel, for a person to review and send. It never sends anything |
 
 Both read **Brex's standard CSV export** (all 70 columns, as downloaded) and keep only the 22 columns
@@ -18,12 +18,34 @@ left until last.
 |---|---|
 | `cogs/` | the two Cogs, the spec, and accounting's answers so far (`questions.md`). `cogs/README.md` describes how each Cog is built |
 | `sample-data/` | synthetic test data in Brex's real layout, one folder per test case, plus the invented context the tests use |
+| `app/` | the web page for the accounting team, over both Cogs. Contains no Cog code: it runs each Cog through its pixi tasks |
 | `tools/` | scripts you run yourself on real data: `profile_export.py` (shape-only summary of an export) and `vendors_to_yaml.py` (vendor list to YAML) |
 | `private/` | **real exports and real context files.** Gitignored, and blocked from Claude |
 | `ROADMAP.md` | what's done and what's left |
 | `CLAUDE.md` | rules and conventions for working in this repo |
 
-## Running on real data
+## For the accounting team: the app
+
+A small web page runs both Cogs in one go. It runs on your own computer only and loads nothing from
+the internet, so statements never leave the machine. It lives in `app/`, outside both Cogs.
+
+1. Open a terminal in this folder and start it:
+   ```bash
+   pixi run --manifest-path app/pixi.toml ui --context private/context --log private/chase-log.json
+   ```
+   The page opens in your browser. (Leave out `--context …` or `--log …` if those don't exist yet.)
+2. Drop **this month's Brex statement** in the first box, and **earlier months' statements** in the
+   second (two or more let charges be confirmed as recurring).
+3. Press **Run**.
+4. Download **the updated statement** (upload this to QuickBooks) and **the review report**. Below
+   them is **a Slack draft for every other charge still without a memo**, grouped by channel, each
+   with a Copy button. Nothing is sent.
+5. Press **Ctrl+C** in the terminal when you're done. Everything you uploaded, and every result, is
+   deleted when it stops; save the downloads first.
+
+More in `app/README.md`.
+
+## Running on real data (command line)
 
 Real exports, real context files and the outputs all stay in `private/`. From the repo root:
 
@@ -33,9 +55,9 @@ pixi run --manifest-path cogs/recurring-subscription-auto-coder-cog/pixi.toml \
   code private/brex-2026-09.csv --history private/brex-2026-07.csv private/brex-2026-08.csv \
   --context private/context --out private/output
 
-# chase-list builder: any number of exports, of any length
+# chase-list builder: on the auto-coder's updated statement, so only charges with no memo are chased
 pixi run --manifest-path cogs/chase-list-builder-cog/pixi.toml \
-  draft private/brex-2026-09.csv --coded private/output/brex-2026-09.recurring.json \
+  draft private/output/brex-2026-09.upload.csv \
   --context private/context --log private/chase-log.json --out private/output
 ```
 

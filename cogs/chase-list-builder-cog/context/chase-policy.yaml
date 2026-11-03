@@ -8,8 +8,20 @@ status: placeholder
 # A refund is coded from the original charge, so there's nothing to ask.
 skip_refunds: true
 
-# With the auto-coder's JSON output passed in (--coded), skip charges it has
-# already proposed a coding for. Its needs-human charges are still chased.
+# Skip any charge that already has a memo. Run on the auto-coder's updated
+# statement (its .upload.csv), every subscription already has one, so what's
+# left without a memo is what to chase.
+skip_when_memo: true
+
+# Text that marks the auto-coder's subscription memo (it writes "<descriptor>
+# Paid by OT, Serving <department> OT"). A *pending* charge from a vendor whose
+# other rows carry it is a subscription that hasn't posted yet: skipped, not
+# chased. Empty turns this off.
+subscription_memo_marker: "Paid by OT, Serving"
+
+# With the auto-coder's JSON output passed in (--coded), skip every charge it
+# treats as a subscription, including ones it flagged for review: that review
+# is accounting's, not a cardholder's.
 skip_coded_by_auto_coder: true
 
 # Skip a charge that already has a receipt attached and a non-empty memo.

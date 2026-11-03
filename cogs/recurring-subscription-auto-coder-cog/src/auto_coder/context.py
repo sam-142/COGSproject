@@ -7,6 +7,7 @@ frames/ are different: they are org context written for a model to read.)
 The files are checked against each other here, once, so a typo in a rule fails
 at load time instead of turning into a quietly wrong coding.
 """
+import string
 from pathlib import Path
 
 import yaml
@@ -18,7 +19,8 @@ DEFAULT_DIR = COG_ROOT / "context"
 FILES = ("vendors", "known-recurring", "coding-rules", "chart-of-accounts", "quickbooks")
 
 # QuickBooks entry settings, used when quickbooks.yaml leaves one out.
-QB_DEFAULTS = {"type_charge": "Credit Card Expense", "type_credit": "Credit Card Credit",
+QB_DEFAULTS = {"subscription_memo": "{statement_descriptor} Paid by OT, Serving {department} OT",
+               "type_charge": "Credit Card Expense", "type_credit": "Credit Card Credit",
                "date_format": "%m/%d/%Y", "ref_field": "card_last4", "ref_max_length": None}
 RULE_FIELDS = ("payee", "account", "class", "department")
 
@@ -90,6 +92,14 @@ def load(override_dir=None):
         known[str(k["vendor"])] = {"cadence": k.get("cadence", "monthly"), "amount": k.get("amount")}
 
     qb = {**QB_DEFAULTS, **{k: v for k, v in (raw["quickbooks"] or {}).items() if k in QB_DEFAULTS}}
+    from auto_coder.coding import MEMO_FIELDS
+    try:
+        used = {f for _, f, _, _ in string.Formatter().parse(qb["subscription_memo"]) if f is not None}
+    except ValueError as e:
+        raise ContextError(f"quickbooks: subscription_memo: {e}") from e
+    if used - set(MEMO_FIELDS):
+        raise ContextError(f"quickbooks: subscription_memo uses unknown field(s) "
+                           f"{', '.join(sorted(used - set(MEMO_FIELDS)))}; allowed: {', '.join(MEMO_FIELDS)}")
     if qb["ref_field"] not in ("card_last4", "reference_id", "transaction_id"):
         raise ContextError("quickbooks: ref_field must be card_last4, reference_id or transaction_id, "
                            f"not {qb['ref_field']!r}")

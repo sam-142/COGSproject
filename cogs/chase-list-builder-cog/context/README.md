@@ -5,7 +5,7 @@ Files the code reads directly. Edit them; nothing needs rebuilding.
 | File | What it controls |
 |---|---|
 | `cards.yaml` | each card's channel and users. Empty: real cards go in an override folder (`--context`) |
-| `chase-policy.yaml` | which charges are chased, and what each message asks for |
+| `chase-policy.yaml` | which charges are chased (`skip_when_memo`, `subscription_memo_marker`, refunds, `--coded` subscriptions) and what each message asks for |
 | `message-template.md` | the wording of every drafted message |
 | `vendors.yaml` | vendor list. Empty by default; **shared** with the auto-coder; keep the copies identical |
 | `transaction.schema.json` | the transaction shape. **Shared** |
@@ -19,7 +19,7 @@ order, as often as you like:
 | Placeholder | Becomes |
 |---|---|
 | `{card_last4}` | `4417` |
-| `{cardholder}` | Brex `User` |
+| `{cardholder}` | Brex `User`, the name on the card; `name not on the export` if blank. Used in the default template's first line |
 | `{channel}` | `#card-4417` |
 | `{merchant}` | Brex's cleaned-up merchant name, e.g. `Delta Air Lines` |
 | `{descriptor}` | the raw statement descriptor, e.g. `DELTA AIR 0062384719263` |

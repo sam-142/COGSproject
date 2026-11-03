@@ -82,17 +82,34 @@ def test_missing_card_number_shows_as_unknown_in_the_draft():
     ("rc_receipt_and_memo", ["purpose", "department"]),
     ("rc_memo_only", ["purpose", "department", "receipt"]),
 ])
-def test_receipt_question_only_when_no_receipt(tx_id, asks):
-    assert chase(run("receipts/export.csv"), tx_id)["ask_for"] == asks
+def test_receipt_question_only_when_no_receipt(tx_id, asks, tmp_path):
+    # With memos not skipped, so every row is drafted and its questions can be seen.
+    assert chase(run("receipts/export.csv", context_dir=policy(tmp_path, skip_when_memo="false")),
+                 tx_id)["ask_for"] == asks
+
+
+def test_charges_that_already_have_a_memo_are_skipped():
+    result = run("receipts/export.csv")
+    for tx_id in ("rc_receipt_and_memo", "rc_memo_only"):
+        assert chase(result, tx_id) == {"source": "rule", "status": "skip",
+                                        "reason": "already has a memo", "ask_for": []}
+    assert chase(result, "rc_none")["status"] == "draft"
+
+
+def policy(tmp_path, **changes):
+    """An override folder holding only a changed chase policy."""
+    ctx = tmp_path / "context"
+    ctx.mkdir(exist_ok=True)
+    text = (ROOT / "context" / "chase-policy.yaml").read_text()
+    for key, value in changes.items():
+        line = next(l for l in text.splitlines() if l.startswith(f"{key}:"))
+        text = text.replace(line, f"{key}: {value}")
+    (ctx / "chase-policy.yaml").write_text(text)
+    return ctx
 
 
 def test_policy_can_skip_charges_with_receipt_and_memo(tmp_path):
-    # Override only the policy; everything else keeps the (synthetic test) defaults.
-    ctx = tmp_path / "context"
-    ctx.mkdir()
-    (ctx / "chase-policy.yaml").write_text(
-        (ROOT / "context" / "chase-policy.yaml").read_text()
-        .replace("skip_when_receipt_and_memo: false", "skip_when_receipt_and_memo: true"))
+    ctx = policy(tmp_path, skip_when_memo="false", skip_when_receipt_and_memo="true")
     result = run("receipts/export.csv", context_dir=ctx)
     assert chase(result, "rc_receipt_and_memo")["status"] == "skip"
     for tx_id in ("rc_none", "rc_receipt_only", "rc_memo_only"):   # need both to be skipped
@@ -236,3 +253,58 @@ def test_wrong_context_is_an_error(make, message, tmp_path):
     from chase_list import context
     with pytest.raises(context.ContextError, match=message):
         context.load(make(tmp_path))
+
+
+# --- after-auto-coder: the auto-coder's updated statement as input --------------
+
+AFTER = "after-auto-coder/brex-transactions-2026-09.upload.csv"
+
+
+@pytest.fixture(scope="module")
+def after():
+    return run(AFTER)
+
+
+def test_only_charges_without_a_memo_are_drafted(after):
+    for tx in after["transactions"]:
+        if tx["inferred"]["chase"]["status"] == "draft":
+            assert not tx["parsed"]["memo"], tx["id"]
+    drafted = sorted(t["parsed"]["merchant_name"] for t in after["transactions"]
+                     if t["inferred"]["chase"]["status"] == "draft")
+    assert len(drafted) == 15 and "Delta Air Lines" in drafted and "Marriott" in drafted
+
+
+def test_no_subscription_is_drafted(after):
+    for tx in after["transactions"]:
+        if "Paid by OT, Serving" in (tx["parsed"]["memo"] or ""):
+            assert chase(after, tx["id"])["reason"] == "already has a memo", tx["id"]
+
+
+def test_pending_subscription_waits_for_its_memo(after):
+    # The pending AWS charge: no memo yet, but AWS's posted rows carry the subscription memo.
+    assert chase(after, "px_0928a") == {
+        "source": "rule", "status": "skip", "ask_for": [],
+        "reason": "pending charge from a subscription vendor; it gets its memo once posted"}
+
+
+def test_pending_one_offs_are_still_chased_early(after):
+    assert chase(after, "px_0929b")["status"] == "draft"      # Marriott hold
+
+
+def test_raw_export_warns_that_subscriptions_will_be_chased():
+    raw = run("baseline/brex-transactions-2026-09.csv")
+    assert any("is this the raw Brex export" in w for w in raw["run"]["warnings"])
+    assert not any("is this the raw Brex export" in w for w in run(AFTER)["run"]["warnings"])
+
+
+# --- the cardholder's name in the draft ----------------------------------------
+
+def test_draft_names_the_cardholder():
+    text = draft(run("routing/export.csv"), "rt_known")["text"]
+    assert text.startswith("A charge on the card ending 1290 (Alex Rivera) needs a few details")
+
+
+def test_draft_says_so_when_the_name_is_missing():
+    # rt_no_card has neither a card number nor a name on the export.
+    text = draft(run("routing/export.csv"), "rt_no_card")["text"]
+    assert "card ending ???? (name not on the export)" in text

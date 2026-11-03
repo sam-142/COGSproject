@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Reconciliation</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dfe3ea;
+    --accent: #2357d9; --accent-text: #ffffff; --warn-bg: #fff6e0; --warn: #8a5a00;
+    --drop: #eef3ff; --error-bg: #fde8e8; --error: #a11c1c; --quote: #f0f2f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171d; --card: #1d2129; --text: #e6e9ef; --muted: #9aa3b2; --line: #2e3440;
+      --accent: #6c94ff; --accent-text: #0d1220; --warn-bg: #3a2f14; --warn: #f2c66d;
+      --drop: #1f2840; --error-bg: #3d1d1d; --error: #ff9b9b; --quote: #252a35;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 30px 0 10px; }
+  h3 { font-size: 15px; margin: 18px 0 8px; }
+  p.lede { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+  .drops { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .drops { grid-template-columns: 1fr; } }
+  .drop { position: relative; display: block; border: 2px dashed var(--line); border-radius: 10px;
+          padding: 18px; cursor: pointer; min-height: 130px; background: var(--card); }
+  .drop.over { border-color: var(--accent); background: var(--drop); }
+  .drop strong { display: block; }
+  .drop .hint { color: var(--muted); font-size: 13px; }
+  .drop ul { margin: 10px 0 0; padding-left: 18px; font-size: 13px; word-break: break-all; }
+  .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .actions { margin-top: 18px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  button, a.button { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 10px 18px;
+                     background: var(--accent); color: var(--accent-text); cursor: pointer; text-decoration: none;
+                     display: inline-block; }
+  .secondary { background: transparent !important; color: var(--accent) !important; border: 1px solid var(--line) !important; }
+  .small { padding: 6px 12px; font-size: 13px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .status { color: var(--muted); }
+  .error { background: var(--error-bg); color: var(--error); border-radius: 8px; padding: 12px 14px; margin-top: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .tile .n { font-size: 26px; font-weight: 700; }
+  .tile .l { color: var(--muted); font-size: 13px; }
+  .list { display: grid; gap: 10px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+         background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .about { color: var(--muted); font-size: 13px; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  td.num { text-align: right; white-space: nowrap; }
+  .warnings { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+  .warnings ul { margin: 0; padding-left: 18px; }
+  .draft { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .draft header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .draft pre { margin: 0; white-space: pre-wrap; word-break: break-word; background: var(--quote);
+               border-radius: 8px; padding: 12px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .tag { font-size: 12px; font-weight: 600; color: var(--warn); background: var(--warn-bg);
+         border-radius: 999px; padding: 2px 8px; margin-left: 6px; }
+  .settings { color: var(--muted); font-size: 13px; margin: 14px 0 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Card Reconciliation</h1>
+  <p class="lede">Add this month's Brex statement and press Run. You'll get the statement with
+    subscription memos filled in, a review report, and a Slack message drafted for every other
+    charge that still needs details. Everything stays on this computer, and nothing is sent.</p>
+
+  <form id="form" class="card">
+    <div class="drops">
+      <label class="drop" id="drop-statement">
+        <strong>This month's statement</strong>
+        <span class="hint">Drop the Brex CSV here, or click to choose it. One file.</span>
+        <input type="file" name="statement" accept=".csv,text/csv">
+        <ul></ul>
+      </label>
+      <label class="drop" id="drop-history">
+        <strong>Earlier months (optional)</strong>
+        <span class="hint">Drop the previous months' Brex CSVs. Two or more months let charges be
+          confirmed as recurring.</span>
+        <input type="file" name="history" accept=".csv,text/csv" multiple>
+        <ul></ul>
+      </label>
+    </div>
+    <div class="actions">
+      <button type="submit" id="run" disabled>Run</button>
+      <button type="button" class="secondary" id="clear">Clear</button>
+      <span class="status" id="status" role="status"></span>
+    </div>
+    <div class="error" id="error" hidden></div>
+    <p class="settings">Context files: {{CONTEXT}}<br>Chase log: {{LOG}}</p>
+  </form>
+
+  <section id="results" hidden>
+    <h2>Results</h2>
+    <div class="tiles">
+      <div class="tile"><div class="n" id="n-memos"></div><div class="l">subscription memos written</div></div>
+      <div class="tile"><div class="n" id="n-flagged"></div><div class="l">subscriptions to check</div></div>
+      <div class="tile"><div class="n" id="n-drafts"></div><div class="l">Slack messages drafted</div></div>
+      <div class="tile"><div class="n" id="n-routing"></div><div class="l">drafts with no channel</div></div>
+    </div>
+    <p class="status" id="history-line"></p>
+
+    <h2>Download</h2>
+    <div class="list" id="downloads-main"></div>
+    <details><summary>Other files</summary><div class="list" id="downloads-other" style="margin-top:10px"></div></details>
+
+    <div id="warnings-block" hidden>
+      <h2>Warnings</h2>
+      <div class="warnings"><ul id="warnings"></ul></div>
+    </div>
+
+    <div id="drafts-block" hidden>
+      <h2>Slack drafts</h2>
+      <p class="status">Nothing has been sent. Read each draft, then copy it into the channel shown.</p>
+      <div id="drafts"></div>
+    </div>
+
+    <div id="flagged-block" hidden>
+      <h2>Subscriptions to check</h2>
+      <table>
+        <thead><tr><th>Merchant</th><th>Date</th><th class="num">Amount</th><th>Why</th></tr></thead>
+        <tbody id="flagged"></tbody>
+      </table>
+    </div>
+
+    <div id="missing-block" hidden>
+      <h2>Subscriptions that didn't charge this month</h2>
+      <p id="missing"></p>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const TOKEN = "{{TOKEN}}";
+  const form = document.getElementById("form");
+  const runButton = document.getElementById("run");
+  const statusEl = document.getElementById("status");
+  const errorEl = document.getElementById("error");
+  const files = { statement: [], history: [] };
+
+  // Every value from a statement is shown as text, never as HTML.
+  const el = (tag, value, cls) => { const e = document.createElement(tag);
+                                    if (value !== undefined) e.textContent = value;
+                                    if (cls) e.className = cls; return e; };
+
+  function render(kind) {
+    document.querySelector(`#drop-${kind} ul`).replaceChildren(...files[kind].map(f => el("li", f.name)));
+    runButton.disabled = files.statement.length !== 1;
+  }
+
+  function add(kind, fileList) {
+    const csvs = [...fileList].filter(f => f.name.toLowerCase().endsWith(".csv"));
+    if (csvs.length < fileList.length) showError("Only .csv files can be added.");
+    files[kind] = kind === "statement" ? csvs.slice(-1) : files[kind].concat(csvs);
+    render(kind);
+  }
+
+  for (const kind of ["statement", "history"]) {
+    const zone = document.getElementById(`drop-${kind}`);
+    const input = zone.querySelector("input");
+    input.addEventListener("change", () => { add(kind, input.files); input.value = ""; });
+    zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("over"); });
+    zone.addEventListener("dragleave", () => zone.classList.remove("over"));
+    zone.addEventListener("drop", e => { e.preventDefault(); zone.classList.remove("over");
+                                         add(kind, e.dataTransfer.files); });
+  }
+
+  document.getElementById("clear").addEventListener("click", () => {
+    files.statement = []; files.history = []; render("statement"); render("history");
+    document.getElementById("results").hidden = true; errorEl.hidden = true; statusEl.textContent = "";
+  });
+
+  function showError(message) { errorEl.textContent = message; errorEl.hidden = false; }
+
+  function downloadRow(run, d) {
+    const row = el("div", undefined, "row");
+    const info = el("div");
+    info.append(el("strong", d.label), el("br"), el("span", d.about, "about"));
+    const link = el("a", "Download", d.main ? "button small" : "button small secondary");
+    link.href = `/download/${encodeURIComponent(run)}/${encodeURIComponent(d.name)}?token=${encodeURIComponent(TOKEN)}`;
+    link.setAttribute("download", d.name);
+    row.append(info, link);
+    return row;
+  }
+
+  function draftCard(d) {
+    const card = el("div", undefined, "draft");
+    const head = el("header");
+    const title = el("div");
+    title.append(el("strong", `${d.merchant}`),
+                 el("span", ` · ${d.amount} · ${d.date}${d.cardholder ? " · " + d.cardholder : ""}`, "about"));
+    if (d.needs_routing) title.append(el("span", "no channel for this card", "tag"));
+    const copy = el("button", "Copy", "small secondary");
+    copy.type = "button";
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(d.text); copy.textContent = "Copied"; }
+      catch { copy.textContent = "Select and copy"; }
+      setTimeout(() => { copy.textContent = "Copy"; }, 1500);
+    });
+    head.append(title, copy);
+    card.append(head, el("pre", d.text));
+    return card;
+  }
+
+  function showDrafts(drafts) {
+    const groups = new Map();
+    for (const d of drafts) {
+      const key = d.channel || "No channel: card not in the card list";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(d);
+    }
+    const keys = [...groups.keys()].sort((a, b) => (a.startsWith("No channel") ? -1 : b.startsWith("No channel") ? 1 : a.localeCompare(b)));
+    const out = [];
+    for (const k of keys) {
+      out.push(el("h3", `${k} (${groups.get(k).length})`));
+      const list = el("div", undefined, "list");
+      list.append(...groups.get(k).map(draftCard));
+      out.push(list);
+    }
+    document.getElementById("drafts").replaceChildren(...out);
+    document.getElementById("drafts-block").hidden = !drafts.length;
+  }
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    const body = new FormData();
+    body.append("statement", files.statement[0]);
+    files.history.forEach(f => body.append("history", f));
+    runButton.disabled = true; statusEl.textContent = "Running… (the first run can take a minute)";
+    try {
+      const res = await fetch("/run", { method: "POST", body, headers: { "X-Token": TOKEN } });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || "Something went wrong."); statusEl.textContent = ""; return; }
+      show(data); statusEl.textContent = "Done.";
+    } catch (err) {
+      showError("Couldn't reach the app. Is it still running?"); statusEl.textContent = "";
+    } finally {
+      runButton.disabled = files.statement.length !== 1;
+    }
+  });
+
+  function show(data) {
+    const c = data.counts;
+    document.getElementById("n-memos").textContent = c.memos;
+    document.getElementById("n-flagged").textContent = c.flagged;
+    document.getElementById("n-drafts").textContent = c.drafts + c.needs_routing;
+    document.getElementById("n-routing").textContent = c.needs_routing;
+    document.getElementById("history-line").textContent = c.history_months.length
+      ? `${c.transactions} transactions. History used: ${c.history_months.join(", ")}.`
+      : `${c.transactions} transactions. No earlier months were added, so subscriptions can't be confirmed as recurring yet.`;
+
+    document.getElementById("downloads-main").replaceChildren(
+      ...data.downloads.filter(d => d.main).map(d => downloadRow(data.run, d)));
+    document.getElementById("downloads-other").replaceChildren(
+      ...data.downloads.filter(d => !d.main).map(d => downloadRow(data.run, d)));
+
+    document.getElementById("warnings").replaceChildren(...data.warnings.map(w => el("li", w)));
+    document.getElementById("warnings-block").hidden = !data.warnings.length;
+
+    showDrafts(data.drafts);
+
+    document.getElementById("flagged").replaceChildren(...data.flagged.map(f => {
+      const tr = el("tr");
+      tr.append(el("td", f.merchant), el("td", f.date), el("td", f.amount, "num"), el("td", f.note));
+      return tr;
+    }));
+    document.getElementById("flagged-block").hidden = !data.flagged.length;
+
+    document.getElementById("missing").textContent = data.missing.join(", ");
+    document.getElementById("missing-block").hidden = !data.missing.length;
+
+    document.getElementById("results").hidden = false;
+    document.getElementById("results").scrollIntoView({ behavior: "smooth" });
+  }
+})();
+</script>
+</body>
+</html>

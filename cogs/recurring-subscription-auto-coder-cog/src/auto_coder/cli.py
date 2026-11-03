@@ -24,7 +24,7 @@ def cmd_code(args):
     except (load.ExportError, context.ContextError, FileNotFoundError) as e:
         print(f"error: {e}", file=sys.stderr)
         sys.exit(2)
-    paths = report.write(result, _path(args.out))
+    paths = report.write(result, _path(args.out), month_path=_path(args.month))
     print(report.summary(result))
     print("\n" + "\n".join(f"wrote {p}" for p in paths))
 
